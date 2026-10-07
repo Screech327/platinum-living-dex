@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20261007183229">
+<link rel="stylesheet" href="styles.css?v=20261007183557">
 </head>
 <body>
 <div class="app">
@@ -131,7 +131,7 @@
       <div id="badges" class="badges"></div>
 
       <h2>Stream overlay (OBS)</h2>
-      <p class="sub">Shows your count on stream and pops up the sprite every time you check one off — from this page or your phone. Turn it on, then paste the overlay link into an OBS <b>Browser</b> source. It stretches to fill whatever size you give it — e.g. width 651, height 133.</p>
+      <p class="sub">Shows your count on stream and pops up the sprite every time you check one off — from this page or your phone. Turn it on, then paste the overlay link into an OBS <b>Browser</b> source (width 460, height 300).</p>
       <label class="switch"><input type="checkbox" id="streamOn"> <span>Send my check-offs to the stream overlay</span></label>
       <div id="streamBox" hidden>
         <div class="olinks" id="oLinks"></div>
@@ -143,7 +143,7 @@
         <p class="sub"><b>Stream key</b> — use the same key on your phone so its check-offs reach the same overlay:</p>
         <div class="row"><input id="streamKey" class="keybox" readonly aria-label="Stream key"><button type="button" class="ghost" id="copyKey">Copy key</button></div>
         <div class="row"><input id="pasteKey" class="keybox" placeholder="Paste a key from another device…" aria-label="Paste stream key"><button type="button" class="ghost" id="useKey">Use this key</button></div>
-        <p class="sub">Overlay options you can add to the end of a link: <code>&amp;frame=0</code> no border/background (use your own frame) · <code>&amp;pop=0</code> no pop-ups · <code>&amp;label=0</code> hide the label · <code>&amp;dot=0</code> hide the connection dot.</p>
+        <p class="sub">Overlay options you can add to the end of a link: <code>&amp;scale=1.5</code> bigger · <code>&amp;pop=0</code> no pop-ups · <code>&amp;label=0</code> hide the label · <code>&amp;dot=0</code> hide the connection dot.</p>
       </div>
 
       <h2>Move progress between your phone and computer</h2>
@@ -187,7 +187,7 @@
 <div class="toast" id="toast" role="status"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
-<script src="data.js?v=20261007183229"></script>
-<script src="app.js?v=20261007183229"></script>
+<script src="data.js?v=20261007183557"></script>
+<script src="app.js?v=20261007183557"></script>
 </body>
 </html>
