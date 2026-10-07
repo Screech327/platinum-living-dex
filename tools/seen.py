@@ -44,7 +44,7 @@ def pretty_map(m):
     s = ' '.join(w if w.isupper() or w[0].isdigit() or w in ('(north)', '(south)', '(east)', '(west)') else w.capitalize() for w in s.split())
     return s.replace('Mt Coronet', 'Mt. Coronet').replace('Pokemon', 'Pokémon')
 
-CLASS = lambda c: c.replace('TRAINER_CLASS_', '').replace('_MALE', '').replace('_FEMALE', '').replace('_', ' ').title().replace('Pi', 'PI') if c else ''
+CLASS = lambda c: c.replace('TRAINER_CLASS_', '').replace('_MALE', '').replace('_FEMALE', '').replace('_', ' ').title() if c else ''
 def trainer_label(key, d):
     k = key[8:].lower()
     name = d['name']
@@ -88,7 +88,7 @@ for s in sinnoh:
     story = [u for u in uniq if not u['post']]
     areas = {u['area'] for u in story}
     out[sid] = dict(n=len(uniq), story=len(story), areas=len(areas),
-                    list=[f"{u['map']}: {u['who']} (Lv{u['lv']})" + (' — post-game' if u['post'] else '') for u in uniq[:8]], more=max(0, len(uniq) - 8))
+                    list=[f"{u['map']}: {u['who']} (Lv{u['lv']})" + (' — post-game' if u['post'] else '') for u in uniq], more=0)
 json.dump(out, open('/home/claude/work/seen.json', 'w'), ensure_ascii=False)
 if __name__ == '__main__':
     for s in sinnoh:

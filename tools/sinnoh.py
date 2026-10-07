@@ -1,6 +1,6 @@
 import sys, csv, json
 sys.path.insert(0, '/home/claude/scripts')
-from summ import classify, fmt_group
+from summ import classify, fmt_group, full_list
 from site_data import entry_rank, OUT
 from evo import PRE, EVO, NAMES
 D = '/home/claude/data/'
@@ -14,13 +14,14 @@ for sid in order:
     story[sid] = es
 for k, sid in enumerate(order, 1):
     es = story[sid]
+    locs = full_list(es) if es else []
     if es:
         txt = fmt_group(es, 3); how = 'catch'
     elif sid in PRE and story.get(PRE[sid]) is not None:
         txt = EVO[sid]; how = 'evolve'
     else:
         txt = ''; how = 'special'
-    res.append(dict(rn=k, id=sid, how=how, story=txt))
+    res.append(dict(rn=k, id=sid, how=how, story=txt, locs=locs))
 if __name__ == '__main__':
     for r in res:
         if r['how'] != 'catch': print(r['rn'], r['id'], NAMES[r['id']], r['how'], r['story'][:90])

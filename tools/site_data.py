@@ -2,7 +2,7 @@
 import sys, json, collections
 sys.path.insert(0, '/home/claude/scripts')
 from data import build
-from summ import classify
+from summ import classify, full_list
 from evo import PRE, NAMES, SP, EVO
 
 R = build()
@@ -137,7 +137,14 @@ for i in range(1, 494):
     if not steps and cat == 'Breed only': steps = [r['where']]
     if not steps and cat in ('Evolve', 'Trade evolution'): steps = [EVO[i]] + ([r['block']] if r['block'] else [])
     fam = chain[SP[i]['evolution_chain_id']]
-    OUT.append(dict(id=i, n=r['name'], g=r['gen'], c=cat, w=r['where'], src=r['game'], need=r['block'], cp=r['copies'] or 0,
+    b = classify(i)
+    LBL = {'wild': '', 'radar': 'Poké Radar: ', 'swarm': 'Swarm: ', 'trophy': 'Trophy Garden (daily): ', 'marsh-rot': 'Great Marsh rotation: ', 'honey': 'Honey trees: '}
+    locs = []
+    for k, lab in LBL.items():
+        if k in b: locs += [lab + x for x in full_list(b[k])] if k != 'honey' else ['Honey trees: all 21 trees (Routes 205–222, Eterna Forest, Floaroma Meadow, Fuego Ironworks, Valley Windworks)']
+    for k in sorted(b):
+        if k.startswith('slot2-'): locs += [f"Dual-slot ({k[6:].title().replace('Firered', 'FireRed').replace('Leafgreen', 'LeafGreen')} in GBA slot): " + x for x in full_list(b[k])]
+    OUT.append(dict(id=i, n=r['name'], locs=locs, g=r['gen'], c=cat, w=r['where'], src=r['game'], need=r['block'], cp=r['copies'] or 0,
                     rank=rank, steps=steps or [], tr=transfer(r), fam=fam, pre=PRE.get(i), evo=EVO.get(i, '')))
 
 if __name__ == '__main__':

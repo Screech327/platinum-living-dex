@@ -115,3 +115,28 @@ if __name__ == '__main__':
     for n in sys.argv[1:]:
         b = classify(int(n))
         for k, v in b.items(): print(n, k, '|', fmt_group(v))
+
+
+def full_list(es):
+    """Every location, one line each: merges sub-areas and story variants of the same place+method."""
+    g = collections.OrderedDict()
+    LAND = ('walk',)
+    for e in sorted(es, key=lambda e: (e['method'] not in LAND, -e['rate'])):
+        k = (e['loc'], e['method'])
+        x = g.setdefault(k, dict(loc=e['loc'], method=e['method'], subs=[], rate=0, lo=99, hi=0, anytime=False, times=set()))
+        if e['sub'] and e['sub'] not in x['subs']: x['subs'].append(e['sub'])
+        x['rate'] = max(x['rate'], e['rate']); x['lo'] = min(x['lo'], e['lo']); x['hi'] = max(x['hi'], e['hi'])
+        if e['times']: x['times'].update(e['times'])
+        else: x['anytime'] = True
+    out = []
+    for x in g.values():
+        loc = x['loc'] + (' ' + '/'.join(x['subs']) if x['subs'] and len(x['subs']) <= 4 else '')
+        meth = MNAME.get(x['method'], x['method'])
+        if meth == 'grass/cave':
+            meth = 'grass' if 'summit' in x['loc'] else 'cave' if any(w in x['loc'] for w in ('Cave', 'Coronet', 'Ruins', 'Island', 'Ironworks', 'Mine', 'Gate', 'Victory', 'Chateau', 'Tower', 'Temple', 'Cavern', 'Path', 'Spring', 'Mountain', 'Underpass')) else 'grass'
+        lv = f"Lv{x['lo']}" if x['lo'] == x['hi'] else f"Lv{x['lo']}–{x['hi']}"
+        T = [t for t in ('morning', 'day', 'night') if t in x['times']]
+        tm = '' if x['anytime'] or not T or len(T) == 3 else (' — ' + T[0] + ' only' if len(T) == 1 else ' — not ' + {'morning': 'in the morning', 'day': 'during the day', 'night': 'at night'}[[t for t in ('morning', 'day', 'night') if t not in T][0]])
+        rate = f", up to {x['rate']}%" if x['method'] not in ('gift', 'gift-egg', 'static', 'roaming-grass', 'roaming-water', 'npc-trade') else ''
+        out.append(f"{loc} ({meth}{rate}, {lv}){tm}")
+    return out

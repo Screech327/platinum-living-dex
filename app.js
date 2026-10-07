@@ -92,7 +92,7 @@ const MILESTONES = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 484, 493];
 function setGot(id, on) {
   const before = gotCount();
   if (on) S.boxed[id] = Date.now(); else delete S.boxed[id];
-  save();
+  save(); publish(on ? 'boxed' : 'unboxed', id);
   const d = BY.get(id), n = gotCount();
   toast(on ? `${d.n} boxed! ${n}/493` : `${d.n} unchecked`);
   if (on) {
@@ -302,7 +302,7 @@ function badges() {
   const trades = DEX.filter(d => d.c === 'Trade evolution').map(d => d.id);
   const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393];
   const B = [
-    ...REGIONS.map(([r, a, b]) => { const ids = DEX.filter(d => d.id >= a && d.id <= b).map(d => d.id); return ['★', `${r} complete`, ids.filter(isGot).length, ids.length]; }),
+    ...REGIONS.map(([r, a, b]) => { const ids = DEX.filter(d => d.id >= a && d.id <= b).map(d => d.id); return ['★', `${r} boxed (#${String(a).padStart(3,'0')}–${b})`, ids.filter(isGot).length, ids.length]; }),
     ['◆', 'First 100', Math.min(n, 100), 100], ['◆', 'Halfway (247)', Math.min(n, 247), 247], ['◆', 'Diploma (484)', Math.min(n, 484), 484], ['♛', 'Living dex (493)', n, 493],
     ['⚡', 'Every legendary', legends.filter(isGot).length, legends.length], ['⇄', 'Every trade evo', trades.filter(isGot).length, trades.length],
     ['✿', 'All 12 starters', starters.filter(isGot).length, 12],
@@ -335,7 +335,7 @@ function initMore() {
     if (!sets) { toast('That isn\'t a progress code — it starts with PLD'); return; }
     const now = Date.now(); S.boxed = {}; sets[0].forEach(id => S.boxed[id] = now);
     if (sets.v2) { S.seen = {}; S.caught = {}; sets[1].forEach(id => S.seen[id] = now); sets[2].forEach(id => S.caught[id] = now); }
-    save(); refresh(); toast(`Loaded ${sets[0].length} boxed · ${sets[1].length} seen · ${sets[2].length} caught`);
+    save(); refresh(); publish('sync'); toast(`Loaded ${sets[0].length} boxed · ${sets[1].length} seen · ${sets[2].length} caught`);
   });
   $('#exportBtn').addEventListener('click', () => {
     const blob = new Blob([JSON.stringify({ app: 'platinum-living-dex', v: 1, saved: new Date().toISOString(), ...S }, null, 1)], { type: 'application/json' });
@@ -349,13 +349,13 @@ function initMore() {
       if (v.app !== 'platinum-living-dex' && !Array.isArray(v.caught)) throw 0;
       if (Array.isArray(v.caught)) { S.boxed = {}; v.caught.forEach(id => S.boxed[id] = Date.now()); }
       else S = Object.assign(fresh(), v); delete S.app; delete S.v; delete S.saved;
-      save(); refresh(); toast(`Restored ${gotCount()} boxed Pokémon`);
+      save(); refresh(); publish('sync'); toast(`Restored ${gotCount()} boxed Pokémon`);
     } catch (err) { toast('That file isn\'t a tracker backup'); }
     e.target.value = '';
   });
   $('#resetBtn').addEventListener('click', () => { $('#resetConfirm').hidden = false; });
   $('#resetNo').addEventListener('click', () => { $('#resetConfirm').hidden = true; });
-  $('#resetYes').addEventListener('click', () => { S = fresh(); save(); refresh(); $('#resetConfirm').hidden = true; toast('Progress cleared'); });
+  $('#resetYes').addEventListener('click', () => { S = fresh(); save(); refresh(); publish('sync'); $('#resetConfirm').hidden = true; toast('Progress cleared'); });
   $('#version').textContent = 'Data version ' + window.DATA_VERSION;
 }
 
@@ -370,8 +370,8 @@ const srows = new Map(), sopen = new Set();
 SIN.forEach(s => s.key = norm(BY.get(s.id).n));
 function seenHint(s) {
   if (s.tip) return s.tip;
-  if (s.how === 'catch') return 'Wild: ' + s.wild.split('; ').slice(0, 2).join('; ');
-  if (s.tr.length) return 'Battle: ' + s.tr[0] + (s.trAll > 1 ? ` (+${s.trAll - 1} more)` : '');
+  if (s.how === 'catch') return 'Wild: ' + s.locs.slice(0, 2).join('; ') + (s.locs.length > 2 ? ` (+${s.locs.length - 2} more — tap)` : '');
+  if (s.tr.length) return 'Battle: ' + s.tr[0] + (s.tr.length > 1 ? ` (+${s.tr.length - 1} more — tap)` : '');
   if (s.how === 'evolve') return 'Evolve: ' + s.wild;
   return 'See details';
 }
@@ -384,8 +384,8 @@ function sinFlags(s) {
   else if (s.how === 'evolve') f.push(['Evolve or battle', 'tier1']);
   return f;
 }
-function setSeen(id, on) { if (on) S.seen[id] = Date.now(); else { delete S.seen[id]; delete S.caught[id]; } save(); afterSin(id, on ? 'seen' : null); }
-function setCaughtR(id, on) { if (on) { S.caught[id] = Date.now(); S.seen[id] = S.seen[id] || Date.now(); } else delete S.caught[id]; save(); afterSin(id, on ? 'caught' : null); }
+function setSeen(id, on) { if (on) S.seen[id] = Date.now(); else { delete S.seen[id]; delete S.caught[id]; } save(); publish(on ? 'seen' : 'uncaught', id); afterSin(id, on ? 'seen' : null); }
+function setCaughtR(id, on) { if (on) { S.caught[id] = Date.now(); S.seen[id] = S.seen[id] || Date.now(); } else delete S.caught[id]; save(); publish(on ? 'caught' : 'uncaught', id); afterSin(id, on ? 'caught' : null); }
 function afterSin(id, what) {
   const n = BY.get(id).n, seenN = SIN.filter(s => isSeen(s.id)).length, caughtN = SIN.filter(s => isCaughtR(s.id)).length;
   if (what === 'seen') toast(`${n} seen · ${seenN}/210`);
@@ -395,13 +395,20 @@ function afterSin(id, what) {
   refresh();
   if (drawerId === id) openDrawer(id);
 }
+function trainerList(s) {
+  const ul = el('ul', {});
+  const fill = all => ul.replaceChildren(...(all ? s.tr : s.tr.slice(0, 8)).map(t => el('li', { text: t })),
+    s.tr.length > 8 ? el('li', { style: 'list-style:none;margin-left:-18px' }, el('button', { type: 'button', class: 'ghost', style: 'padding:4px 12px;font-size:13px', text: all ? 'Show fewer' : `Show all ${s.tr.length} trainers`, onclick: e => { e.stopPropagation(); fill(!all); } })) : '');
+  fill(false);
+  return el('div', {}, el('h5', { text: `Trainers who use it (${s.tr.length}) — battling them counts as seen` }), ul);
+}
 function sinDetail(s, inDrawer) {
   const d = BY.get(s.id);
   return el('div', { class: 'sdetail' },
     s.tip ? el('div', {}, el('h5', { text: 'How to see it' }), el('p', { style: 'margin:2px 0 0', text: s.tip })) : null,
-    s.how === 'catch' ? el('div', {}, el('h5', { text: 'Catch it during the story' }), el('ul', {}, s.wild.split('; ').map(w => el('li', { text: w })))) : null,
+    s.how === 'catch' ? el('div', {}, el('h5', { text: `Catch it during the story (${s.locs.length} place${s.locs.length === 1 ? '' : 's'})` }), el('ul', {}, s.locs.map(w => el('li', { text: w })))) : null,
     s.how === 'evolve' ? el('div', {}, el('h5', { text: 'Evolve' }), el('p', { style: 'margin:2px 0 0', text: s.wild })) : null,
-    s.tr.length ? el('div', {}, el('h5', { text: `Trainers who use it (${s.trAll}) — battling them counts as seen` }), el('ul', {}, s.tr.map(t => el('li', { text: t })), s.more ? el('li', { text: `+${s.more} more` }) : null)) : null,
+    s.tr.length ? trainerList(s) : null,
     !s.tip && !s.tr.length && s.how === 'special' ? el('p', { text: d.w }) : null,
     inDrawer ? null : el('div', { class: 'row' }, el('button', { type: 'button', class: 'ghost', text: 'Full details', onclick: () => openDrawer(s.id) })));
 }
@@ -458,6 +465,51 @@ function renderSin() {
     `${210 - seenN} left to see. See all 210, then talk to Prof. Rowan after the Hall of Fame to unlock the National Dex. Seeing is enough — battling a trainer's Pokémon counts.`;
 }
 
+
+/* ---------------- STREAM OVERLAY (ntfy.sh relay) ---------------- */
+const SKEY = 'pld-stream';
+let ST = { on: false, topic: '' };
+try { ST = Object.assign(ST, JSON.parse(localStorage.getItem(SKEY) || '{}')); } catch (e) {}
+const saveST = () => { try { localStorage.setItem(SKEY, JSON.stringify(ST)); } catch (e) {} };
+const newTopic = () => 'pld-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b % 36).toString(36)).join('');
+const counts = () => ({ boxed: gotCount(), seen: SIN.filter(s => isSeen(s.id)).length, caught: SIN.filter(s => isCaughtR(s.id)).length });
+let sendQ = Promise.resolve();
+function publish(kind, id) {
+  if (!ST.on || !ST.topic) return;
+  const msg = Object.assign({ app: 'pld', v: 1, kind, id: id || null, name: id ? BY.get(id).n : null, ts: Date.now() }, counts());
+  sendQ = sendQ.then(() => fetch('https://ntfy.sh/' + encodeURIComponent(ST.topic), { method: 'POST', body: JSON.stringify(msg) })
+    .then(r => { streamStatus(r.ok ? 'Sent ✓' : 'Relay said ' + r.status); })
+    .catch(() => streamStatus('Could not reach the relay — check your connection')));
+}
+function streamStatus(t) { const e = $('#streamStatus'); if (e) { e.textContent = t; clearTimeout(streamStatus.t); streamStatus.t = setTimeout(() => e.textContent = '', 4000); } }
+function overlayURL(mode) {
+  const base = location.href.split('#')[0].replace(/index\.html$/, '').replace(/[^/]*$/, '');
+  return `${base}overlay.html#t=${ST.topic}&mode=${mode}`;
+}
+function renderStream() {
+  $('#streamOn').checked = ST.on;
+  $('#streamBox').hidden = !ST.on;
+  if (!ST.on) return;
+  $('#streamKey').value = ST.topic;
+  const L = [['living', 'Living Dex counter', 'Counts Pokémon you mark as boxed (out of 493). Pops up on every box.'],
+             ['sinnoh', 'Sinnoh Dex — caught', 'Counts Sinnoh Dex catches (out of 210).'],
+             ['seen', 'Sinnoh Dex — seen', 'Counts Sinnoh Dex sightings (out of 210).']];
+  $('#oLinks').replaceChildren(...L.map(([m, t, d]) => {
+    const url = overlayURL(m);
+    return el('div', { class: 'olink' }, el('b', { text: t }), el('span', { class: 'sub', style: 'margin:0', text: d }), el('code', { text: url }),
+      el('div', { class: 'row', style: 'margin:0' }, el('button', { type: 'button', class: 'ghost', text: 'Copy link', onclick: async () => { try { await navigator.clipboard.writeText(url); toast('Overlay link copied — paste it into OBS'); } catch (e) { toast('Select the link and copy it'); } } }),
+        el('a', { class: 'btn ghost', href: url, target: '_blank', rel: 'noopener', text: 'Preview' })));
+  }));
+}
+function initStream() {
+  $('#streamOn').addEventListener('change', e => { ST.on = e.target.checked; if (ST.on && !ST.topic) ST.topic = newTopic(); saveST(); renderStream(); if (ST.on) publish('sync'); });
+  $('#streamTest').addEventListener('click', () => { const pick = DEX[Math.random() * 493 | 0]; publish('test', pick.id); toast('Test alert sent'); });
+  $('#streamSync').addEventListener('click', () => { publish('sync'); toast('Counts sent'); });
+  $('#copyKey').addEventListener('click', async () => { try { await navigator.clipboard.writeText(ST.topic); toast('Stream key copied'); } catch (e) { $('#streamKey').select(); } });
+  $('#useKey').addEventListener('click', () => { const k = $('#pasteKey').value.trim(); if (!/^pld-[a-z0-9]{8,40}$/.test(k)) { toast('That isn\'t a stream key — it starts with pld-'); return; } ST.topic = k; ST.on = true; saveST(); renderStream(); $('#pasteKey').value = ''; publish('sync'); toast('Linked to that overlay'); });
+  renderStream();
+}
+
 /* ---------------- drawer ---------------- */
 let drawerId = null, lastFocus = null;
 function whereList(text) {
@@ -502,7 +554,9 @@ function openDrawer(id) {
       el('dt', { text: 'Unlocks' }), el('dd', { text: TIER_NOTES[d.rank] }),
       d.need ? el('dt', { text: 'Needs' }) : null, d.need ? el('dd', { text: d.need }) : null),
     steps.length ? el('div', { class: 'dsec' }, el('h4', { text: 'How to get it' }), el('ol', { class: 'steps' }, steps.map(s => el('li', { text: s })))) : null,
-    isEvo && !d.w.includes(' · ') ? null : el('div', { class: 'dsec' }, el('h4', { text: isEvo ? 'Also catchable' : 'Where / rates' }), whereList(isEvo ? d.w.split(' · ').slice(1).join(' · ') : d.w)),
+    d.locs.length ? el('div', { class: 'dsec' }, el('h4', { text: `${isEvo ? 'Also catchable in Platinum' : 'Every place to catch it in Platinum'} (${d.locs.length})` }), el('div', { class: 'where' }, el('ul', {}, d.locs.map(l => el('li', { text: l })))))
+      : (isEvo || d.c === 'Wild' ? null : el('div', { class: 'dsec' }, el('h4', { text: 'Where' }), whereList(d.w))),
+    isEvo || !d.locs.length || !d.w.includes(' · ') ? null : el('div', { class: 'dsec' }, el('h4', { text: 'Other ways' }), whereList(d.w.split(' · ').slice(1).join(' · '))),
     copies ? el('div', { class: 'dsec' }, el('h4', { text: 'Copies' }), el('p', { class: 'sub', text: `Catch or breed ${copies.length + 1}: one stays ${d.n}, the rest become ${copies.map(c => BY.get(c).n).join(', ')}. Track them on the Copies tab.` })) : null,
     fam,
     el('div', { class: 'dsec' }, el('h4', { text: 'Notes' }), note)].filter(Boolean));
@@ -529,7 +583,7 @@ function setView(v) {
 function refresh() { header(); RENDER[view](); }
 
 function init() {
-  load(); buildSin(); buildGrid(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore();
+  load(); buildSin(); buildGrid(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore(); initStream();
   $$('[data-view]').forEach(b => b.addEventListener('click', () => { setView(b.dataset.view); scrollTo({ top: 0 }); }));
   $('#scrim').addEventListener('click', closeDrawer);
   addEventListener('keydown', e => { if (e.key === 'Escape' && drawerId) closeDrawer(); });
