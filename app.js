@@ -512,6 +512,9 @@ function initStream() {
   $('#copyKey').addEventListener('click', async () => { try { await navigator.clipboard.writeText(ST.topic); toast('Stream key copied'); } catch (e) { $('#streamKey').select(); } });
   $('#useKey').addEventListener('click', () => { const k = $('#pasteKey').value.trim(); if (!/^pld-[a-z0-9]{8,40}$/.test(k)) { toast('That isn\'t a stream key — it starts with pld-'); return; } ST.topic = k; ST.on = true; saveST(); renderStream(); $('#pasteKey').value = ''; publish('sync'); toast('Linked to that overlay'); });
   renderStream();
+  // keep the overlay in step: send current counts whenever the site opens or comes back into focus
+  if (ST.on) setTimeout(() => publish('sync'), 800);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && ST.on) publish('sync'); });
 }
 
 /* ---------------- drawer ---------------- */
