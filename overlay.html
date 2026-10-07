@@ -33,14 +33,14 @@ body{font-family:var(--pixel);color:var(--fg)}
 .bump .big{animation:bump .6s ease}
 @keyframes bump{0%{transform:scale(1)}30%{transform:scale(1.18);color:var(--gold)}100%{transform:scale(1)}}
 
-.pop{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:10px;min-width:340px;max-width:440px;padding:8px 16px 8px 8px;
-  background:linear-gradient(180deg,var(--panel-2),var(--panel));border:4px solid var(--gold);border-radius:16px;box-shadow:0 0 22px rgb(255 207 63 / .5);
-  transform:translateX(-120%);opacity:0;transition:transform .45s cubic-bezier(.2,1.3,.4,1),opacity .3s}
+.pop{position:absolute;inset:-4px;z-index:2;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:0 18px 0 6px;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));border:4px solid var(--gold);border-radius:16px;box-shadow:0 0 18px rgb(255 207 63 / .5);
+  opacity:0;transform:scale(.94);transition:transform .35s cubic-bezier(.2,1.3,.4,1),opacity .25s;pointer-events:none}
 .pop.show{transform:none;opacity:1}
-.pop img{width:96px;height:96px;image-rendering:pixelated;filter:drop-shadow(3px 3px 0 #000)}
-.pop .t1{font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:8px}
-.pop .t2{font-size:18px;line-height:1.3;text-shadow:3px 3px 0 #000;word-break:break-word}
-.pop .t3{font-size:9px;color:var(--muted);margin-top:8px}
+.pop img{height:calc(100% - 4px);aspect-ratio:1;image-rendering:pixelated;filter:drop-shadow(3px 3px 0 #000)}
+.pop .t1{font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:10px}
+.pop .t2{font-size:20px;line-height:1.2;text-shadow:3px 3px 0 #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop .t3{font-size:11px;color:var(--muted);text-align:right;line-height:1.8;white-space:pre}
 .pop.unbox{border-color:var(--muted);box-shadow:none}
 .pop.unbox .t1{color:var(--muted)}
 .setup{position:absolute;inset:0;display:grid;place-items:center;font:14px/1.5 system-ui,sans-serif;color:#fff;background:#111;padding:20px;text-align:center}
@@ -52,15 +52,16 @@ body{font-family:var(--pixel);color:var(--fg)}
 </head>
 <body>
 <div class="stack" id="stack">
-  <div class="pop" id="pop" aria-live="polite">
-    <img id="popImg" alt="">
-    <div><div class="t1" id="popT1">CAUGHT!</div><div class="t2" id="popT2"></div><div class="t3" id="popT3"></div></div>
-  </div>
   <div class="counter" id="counter">
     <svg class="ball" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="#fff" stroke="#000" stroke-width="2"/><path d="M1.5 12a10.5 10.5 0 0 1 21 0z" fill="#e0242c" stroke="#000" stroke-width="2"/><circle cx="12" cy="12" r="3.6" fill="#fff" stroke="#000" stroke-width="2"/></svg>
     <div class="nums"><span class="big" id="big">000</span><span class="of" id="of">/493</span><span class="label" id="label"></span></div>
     <div class="bar"><i id="fill"></i></div>
     <span class="dot" id="dot" title="relay connection"></span>
+    <div class="pop" id="pop" aria-live="polite">
+      <img id="popImg" alt="">
+      <div style="min-width:0"><div class="t1" id="popT1">CAUGHT!</div><div class="t2" id="popT2"></div></div>
+      <div class="t3" id="popT3"></div>
+    </div>
   </div>
 </div>
 <script>
@@ -109,7 +110,7 @@ function pop(msg) {
   $('popImg').src = SPRITE(msg.id);
   $('popT1').textContent = msg.kind === 'test' ? 'TEST ALERT' : off ? 'REMOVED' : msg.kind === 'seen' ? 'SEEN!' : 'CAUGHT!';
   $('popT2').textContent = msg.name || '';
-  $('popT3').textContent = `#${String(msg.id).padStart(3, '0')}` + (msg[M.key] != null ? `  ·  ${msg[M.key]}/${M.of}` : '');
+  $('popT3').textContent = `#${String(msg.id).padStart(3, '0')}` + (msg[M.key] != null ? `\n${msg[M.key]}/${M.of}` : '');
   p.classList.remove('show'); void p.offsetWidth; p.classList.add('show');
   clearTimeout(popT); popT = setTimeout(() => p.classList.remove('show'), 5500);
 }
