@@ -101,9 +101,10 @@ let popT;
 function pop(msg) {
   if (!showPop) return;
   const p = $('pop');
-  const relevant = (mode === 'living' && (msg.kind === 'boxed' || msg.kind === 'unboxed')) || (mode !== 'living' && (msg.kind === 'caught' || msg.kind === 'seen' || msg.kind === 'uncaught')) || msg.kind === 'test';
+  const relevant = msg.kind === 'test' || msg.kind === 'caught' || msg.kind === 'uncaught' || msg.kind === 'boxed' || msg.kind === 'unboxed' || (mode === 'seen' && msg.kind === 'seen');
   if (!relevant || !msg.id) return;
   const off = msg.kind === 'unboxed' || msg.kind === 'uncaught';
+  if (mode === 'sinnoh' && msg.sinnoh === false) return;
   p.classList.toggle('unbox', off);
   $('popImg').src = SPRITE(msg.id);
   $('popT1').textContent = msg.kind === 'test' ? 'TEST ALERT' : off ? 'REMOVED' : msg.kind === 'seen' ? 'SEEN!' : 'CAUGHT!';

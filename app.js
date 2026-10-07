@@ -25,7 +25,7 @@ let S = { boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {} };
 const fresh = () => ({ boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {} });
 let storageOK = true;
 function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); }
+  try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); for (const [id, t] of Object.entries(S.caught || {})) { S.boxed[id] = S.boxed[id] || t; S.seen[id] = S.seen[id] || t; } if (Object.keys(S.caught).length) { S.caught = {}; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} } }
   catch (e) { storageOK = false; }
 }
 let saveT;
@@ -91,8 +91,8 @@ function confetti() {
 const MILESTONES = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 484, 493];
 function setGot(id, on) {
   const before = gotCount();
-  if (on) S.boxed[id] = Date.now(); else delete S.boxed[id];
-  save(); publish(on ? 'boxed' : 'unboxed', id);
+  if (on) { S.boxed[id] = Date.now(); if (SINBY.has(id)) S.seen[id] = S.seen[id] || Date.now(); } else delete S.boxed[id];
+  save(); publish(on ? 'caught' : 'uncaught', id);
   const d = BY.get(id), n = gotCount();
   toast(on ? `${d.n} caught! ${n}/493` : `${d.n} unchecked`);
   if (on) {
@@ -102,8 +102,12 @@ function setGot(id, on) {
     if (MILESTONES.includes(n) && n > before) { confetti(); setTimeout(() => toast(n === 493 ? 'LIVING DEX COMPLETE! All 493!' : `Milestone: ${n} Pokémon caught!`), 400); }
     else if (regDone) { confetti(); setTimeout(() => toast(`${reg[0]} complete!`), 400); }
     else if (boxDone) { confetti(); setTimeout(() => toast(`Box ${box} is full!`), 400); }
+    if (SINBY.has(id)) { const cN = SIN.filter(s => isCaughtR(s.id)).length, sN = SIN.filter(s => isSeen(s.id)).length;
+      if ([50, 100, 150, 210].includes(cN)) { confetti(); setTimeout(() => toast(`${cN} Sinnoh Dex Pokémon caught!`), 900); }
+      if (sN === 210 && !afterSin.done) { afterSin.done = true; confetti(); setTimeout(() => toast('All 210 seen! Go see Prof. Rowan for the National Dex.'), 900); } }
   }
   refresh();
+  if (drawerId === id) openDrawer(id);
 }
 
 /* ---------------- header ---------------- */
@@ -121,7 +125,7 @@ function chip(text, cls) { return el('span', { class: 'chip ' + (cls || ''), tex
 function buildGrid() {
   const frag = document.createDocumentFragment();
   for (const d of DEX) {
-    const tick = el('input', { type: 'checkbox', class: 'tick', 'aria-label': 'Boxed: ' + d.n });
+    const tick = el('input', { type: 'checkbox', class: 'tick', 'aria-label': 'Caught: ' + d.n });
     tick.addEventListener('click', e => e.stopPropagation());
     tick.addEventListener('change', () => setGot(d.id, tick.checked));
     const li = el('li', { class: 'card', tabindex: 0, 'data-id': d.id },
@@ -157,7 +161,7 @@ function renderGrid() {
     tick.checked = got; li.classList.toggle('got', got); li.hidden = !ok; if (ok) shown++;
   }
   $('#noRes').hidden = shown > 0;
-  $('#resultLine').textContent = shown === 493 ? 'Showing all 493 — tap a card for details, tap the box to check it off.' : `Showing ${shown} of 493`;
+  $('#resultLine').textContent = shown === 493 ? 'Showing all 493 — tap a card for details, tap the box to mark it caught.' : `Showing ${shown} of 493`;
 }
 function initFilters() {
   [...new Set(DEX.map(d => d.c))].forEach(m => $('#fMethod').append(new Option(m, m)));
@@ -312,7 +316,7 @@ function badges() {
 }
 function encode() {
   const bytes = new Uint8Array(62 * 3);
-  [S.boxed, S.seen, S.caught].forEach((set, k) => { for (const id of Object.keys(set)) { const i = +id - 1; bytes[k * 62 + (i >> 3)] |= 1 << (i & 7); } });
+  [S.boxed, S.seen, {}].forEach((set, k) => { for (const id of Object.keys(set)) { const i = +id - 1; bytes[k * 62 + (i >> 3)] |= 1 << (i & 7); } });
   return 'PLD2-' + btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 function decode(code) {
@@ -334,7 +338,7 @@ function initMore() {
     let sets; try { sets = decode($('#codeBox').value); } catch (e) { sets = null; }
     if (!sets) { toast('That isn\'t a progress code — it starts with PLD'); return; }
     const now = Date.now(); S.boxed = {}; sets[0].forEach(id => S.boxed[id] = now);
-    if (sets.v2) { S.seen = {}; S.caught = {}; sets[1].forEach(id => S.seen[id] = now); sets[2].forEach(id => S.caught[id] = now); }
+    if (sets.v2) { S.seen = {}; S.caught = {}; sets[1].forEach(id => S.seen[id] = now); sets[2].forEach(id => { S.boxed[id] = now; S.seen[id] = now; }); }
     save(); refresh(); publish('sync'); toast(`Loaded ${sets[0].length} boxed · ${sets[1].length} seen · ${sets[2].length} caught`);
   });
   $('#exportBtn').addEventListener('click', () => {
@@ -348,7 +352,7 @@ function initMore() {
       const v = JSON.parse(await f.text());
       if (v.app !== 'platinum-living-dex' && !Array.isArray(v.caught)) throw 0;
       if (Array.isArray(v.caught)) { S.boxed = {}; v.caught.forEach(id => S.boxed[id] = Date.now()); }
-      else S = Object.assign(fresh(), v); delete S.app; delete S.v; delete S.saved;
+      else { S = Object.assign(fresh(), v); delete S.app; delete S.v; delete S.saved; for (const [id, t] of Object.entries(S.caught || {})) { S.boxed[id] = S.boxed[id] || t; S.seen[id] = S.seen[id] || t; } S.caught = {}; }
       save(); refresh(); publish('sync'); toast(`Restored ${gotCount()} boxed Pokémon`);
     } catch (err) { toast('That file isn\'t a tracker backup'); }
     e.target.value = '';
@@ -363,8 +367,8 @@ function initMore() {
 /* ---------------- SINNOH DEX view ---------------- */
 const BALL = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M2 12h20" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="3.4" fill="var(--surface)" stroke="currentColor" stroke-width="2.2"/></svg>';
 const SIN = window.SINNOH, SINBY = new Map(SIN.map(s => [s.id, s]));
-const isSeen = id => !!(S.seen[id] || S.caught[id]);
-const isCaughtR = id => !!S.caught[id];
+const isSeen = id => !!(S.seen[id] || S.boxed[id]);
+const isCaughtR = id => !!S.boxed[id];
 let sshow = 'all';
 const srows = new Map(), sopen = new Set();
 SIN.forEach(s => s.key = norm(BY.get(s.id).n));
@@ -384,8 +388,8 @@ function sinFlags(s) {
   else if (s.how === 'evolve') f.push(['Evolve or battle', 'tier1']);
   return f;
 }
-function setSeen(id, on) { if (on) S.seen[id] = Date.now(); else { delete S.seen[id]; delete S.caught[id]; } save(); publish(on ? 'seen' : 'uncaught', id); afterSin(id, on ? 'seen' : null); }
-function setCaughtR(id, on) { if (on) { S.caught[id] = Date.now(); S.seen[id] = S.seen[id] || Date.now(); } else delete S.caught[id]; save(); publish(on ? 'caught' : 'uncaught', id); afterSin(id, on ? 'caught' : null); }
+function setSeen(id, on) { if (on) S.seen[id] = Date.now(); else { delete S.seen[id]; if (S.boxed[id]) { setGot(id, false); return; } } save(); publish(on ? 'seen' : 'unseen', id); afterSin(id, on ? 'seen' : null); }
+function setCaughtR(id, on) { setGot(id, on); }
 function afterSin(id, what) {
   const n = BY.get(id).n, seenN = SIN.filter(s => isSeen(s.id)).length, caughtN = SIN.filter(s => isCaughtR(s.id)).length;
   if (what === 'seen') toast(`${n} seen · ${seenN}/210`);
@@ -476,7 +480,7 @@ const counts = () => ({ boxed: gotCount(), seen: SIN.filter(s => isSeen(s.id)).l
 let sendQ = Promise.resolve();
 function publish(kind, id) {
   if (!ST.on || !ST.topic) return;
-  const msg = Object.assign({ app: 'pld', v: 1, kind, id: id || null, name: id ? BY.get(id).n : null, ts: Date.now() }, counts());
+  const msg = Object.assign({ app: 'pld', v: 1, kind, id: id || null, name: id ? BY.get(id).n : null, sinnoh: id ? SINBY.has(id) : null, ts: Date.now() }, counts());
   sendQ = sendQ.then(() => fetch('https://ntfy.sh/' + encodeURIComponent(ST.topic), { method: 'POST', body: JSON.stringify(msg) })
     .then(r => { streamStatus(r.ok ? 'Sent ✓' : 'Relay said ' + r.status); })
     .catch(() => streamStatus('Could not reach the relay — check your connection')));
@@ -524,7 +528,7 @@ function openDrawer(id) {
   tick.addEventListener('change', () => { setGot(id, tick.checked); openDrawer(id); });
   const fam = d.fam.length > 1 ? el('div', { class: 'dsec' }, el('h4', { text: 'Evolution family' }),
     el('div', { class: 'fam' }, d.fam.map(f => el('button', { type: 'button', class: (isGot(f) ? 'got ' : '') + (f === id ? 'me' : ''), onclick: () => openDrawer(f) },
-      img(f), el('span', {}, BY.get(f).n, el('br'), el('span', { class: 'fs', text: isGot(f) ? '✓ boxed' : 'needed' })))))) : null;
+      img(f), el('span', {}, BY.get(f).n, el('br'), el('span', { class: 'fs', text: isGot(f) ? '✓ caught' : 'needed' })))))) : null;
   const copies = COPY.get(id);
   const note = el('textarea', { class: 'dnote', id: 'note' + id, placeholder: 'Your notes (nickname, which box, where you left it…)' });
   note.value = S.notes[id] || '';
@@ -542,7 +546,7 @@ function openDrawer(id) {
     el('div', { class: 'dhead' }, el('div', { class: 'big' }, el('img', { class: 'px', src: SPRITE(id), alt: d.n, width: 120, height: 120 })),
       el('div', {}, el('span', { class: 'num', text: '#' + pad(id) + ' · ' + regionOf(id) }), el('h3', { text: d.n }),
         el('div', { class: 'chips', style: 'margin-top:6px' }, chip(d.c), chip(TIERS[d.rank], 'tier' + d.rank), d.cp ? chip('catch ×' + d.cp, 'cp') : null))),
-    el('label', { class: 'boxit' + (got ? ' got' : '') }, tick, got ? `Boxed ${new Date(S.boxed[id]).toLocaleDateString()}` : 'Mark as boxed'),
+    el('label', { class: 'boxit' + (got ? ' got' : '') }, tick, got ? `Caught ${new Date(S.boxed[id]).toLocaleDateString()}` : 'Mark as caught'),
     SINBY.has(id) ? el('div', { class: 'dsec' }, el('h4', { text: `Sinnoh Dex #${String(SINBY.get(id).rn).padStart(3, '0')}` }),
       el('div', { class: 'row' },
         el('button', { type: 'button', class: isSeen(id) ? '' : 'ghost', text: isSeen(id) ? '👁 Seen' : '👁 Mark seen', onclick: () => setSeen(id, !isSeen(id)) }),
