@@ -106,7 +106,7 @@ function pop(msg) {
   const off = msg.kind === 'unboxed' || msg.kind === 'uncaught';
   p.classList.toggle('unbox', off);
   $('popImg').src = SPRITE(msg.id);
-  $('popT1').textContent = msg.kind === 'test' ? 'TEST ALERT' : off ? 'REMOVED' : msg.kind === 'seen' ? 'SEEN!' : msg.kind === 'caught' ? 'CAUGHT!' : 'BOXED!';
+  $('popT1').textContent = msg.kind === 'test' ? 'TEST ALERT' : off ? 'REMOVED' : msg.kind === 'seen' ? 'SEEN!' : 'CAUGHT!';
   $('popT2').textContent = msg.name || '';
   $('popT3').textContent = `#${String(msg.id).padStart(3, '0')}` + (msg[M.key] != null ? `  ·  ${msg[M.key]}/${M.of}` : '');
   p.classList.remove('show'); void p.offsetWidth; p.classList.add('show');

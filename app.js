@@ -94,12 +94,12 @@ function setGot(id, on) {
   if (on) S.boxed[id] = Date.now(); else delete S.boxed[id];
   save(); publish(on ? 'boxed' : 'unboxed', id);
   const d = BY.get(id), n = gotCount();
-  toast(on ? `${d.n} boxed! ${n}/493` : `${d.n} unchecked`);
+  toast(on ? `${d.n} caught! ${n}/493` : `${d.n} unchecked`);
   if (on) {
     const reg = REGIONS.find(r => id >= r[1] && id <= r[2]);
     const regDone = DEX.filter(x => x.id >= reg[1] && x.id <= reg[2]).every(x => isGot(x.id));
     const box = Math.ceil(id / 30), boxDone = DEX.filter(x => Math.ceil(x.id / 30) === box).every(x => isGot(x.id));
-    if (MILESTONES.includes(n) && n > before) { confetti(); setTimeout(() => toast(n === 493 ? 'LIVING DEX COMPLETE! All 493!' : `Milestone: ${n} Pokémon boxed!`), 400); }
+    if (MILESTONES.includes(n) && n > before) { confetti(); setTimeout(() => toast(n === 493 ? 'LIVING DEX COMPLETE! All 493!' : `Milestone: ${n} Pokémon caught!`), 400); }
     else if (regDone) { confetti(); setTimeout(() => toast(`${reg[0]} complete!`), 400); }
     else if (boxDone) { confetti(); setTimeout(() => toast(`Box ${box} is full!`), 400); }
   }
