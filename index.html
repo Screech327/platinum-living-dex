@@ -26,7 +26,8 @@
   </header>
 
   <nav class="tabs" aria-label="Sections">
-    <button type="button" data-view="dex" aria-current="page"><span class="ti">◉</span>Dex</button>
+    <button type="button" data-view="sinnoh"><span class="ti">◐</span>Sinnoh</button>
+    <button type="button" data-view="dex"><span class="ti">◉</span>Living</button>
     <button type="button" data-view="boxes"><span class="ti">▦</span>Boxes</button>
     <button type="button" data-view="plan"><span class="ti">⚑</span>Plan</button>
     <button type="button" data-view="today"><span class="ti">◷</span>Today</button>
@@ -35,6 +36,32 @@
   </nav>
 
   <main>
+    <!-- SINNOH DEX -->
+    <section id="view-sinnoh" class="view" hidden>
+      <div class="sinhead">
+        <div class="stat"><b id="sSeen">0</b><span>/ 210 seen</span><i class="bar"><i id="sSeenBar"></i></i></div>
+        <div class="stat"><b id="sCaught">0</b><span>/ 210 caught</span><i class="bar"><i id="sCaughtBar"></i></i></div>
+      </div>
+      <p class="sub" id="sGoal">See all 210 in Platinum's Sinnoh Pokédex, then talk to Prof. Rowan after the Hall of Fame to unlock the National Dex. Seeing is enough — battling a trainer's Pokémon counts.</p>
+      <div class="toolbar">
+        <div class="search">
+          <input id="sq" type="search" autocomplete="off" placeholder="Search name or Sinnoh number…" aria-label="Search Sinnoh Dex">
+          <button type="button" class="ghost" id="sqClear">Clear</button>
+        </div>
+        <div class="filters">
+          <div class="seg" role="group" aria-label="Show">
+            <button type="button" data-sshow="all" aria-pressed="true">All</button>
+            <button type="button" data-sshow="unseen" aria-pressed="false">Not seen</button>
+            <button type="button" data-sshow="seen" aria-pressed="false">Seen only</button>
+            <button type="button" data-sshow="caught" aria-pressed="false">Caught</button>
+          </div>
+          <select id="sHow" aria-label="How"><option value="">Any way</option><option value="trainer">Only seen in trainer battles</option><option value="rare">Only 1–2 trainers have it</option><option value="special">Special / story event</option></select>
+        </div>
+        <p class="resultline">Tap 👁 when you've seen it, the Poké Ball when you've caught it. Tap the row for where to find it.</p>
+      </div>
+      <ul class="slist" id="slist"></ul>
+    </section>
+
     <!-- DEX -->
     <section id="view-dex" class="view">
       <div class="toolbar">

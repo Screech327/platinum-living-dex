@@ -21,10 +21,11 @@ const el = (tag, attrs = {}, ...kids) => {
 const img = (id, cls = 'px') => el('img', { class: cls, src: SPRITE(id), alt: '', loading: 'lazy', decoding: 'async', width: 64, height: 64 });
 
 /* ---------------- state ---------------- */
-let S = { boxed: {}, have: {}, notes: {}, timers: {} };
+let S = { boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {} };
+const fresh = () => ({ boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {} });
 let storageOK = true;
 function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); }
+  try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); }
   catch (e) { storageOK = false; }
 }
 let saveT;
@@ -45,6 +46,7 @@ const GAMES = [
   { name: 'HeartGold / SoulSilver', note: 'Legendaries, starters and Snorlax — and Pal Park with no daily limit. Trade to Platinum.', test: d => /HG\/SS|HeartGold|SoulSilver/.test(d.src) },
   { name: 'FireRed / LeafGreen', note: 'Dual-slot spawns (cart in the GBA slot) and Pal Park sources like Kanto starters and Snorlax.', test: d => /FireRed|LeafGreen|FR\/LG|Any Gen 3/.test(d.src) },
   { name: 'Ruby / Sapphire / Emerald', note: 'Dual-slot spawns and the Gen 3 legendaries via Pal Park.', test: d => /Ruby|Sapphire|Emerald|R\/S\/E|Any Gen 3/.test(d.src) },
+  { name: 'Spin-offs', note: 'Pokémon Ranger (Manaphy → Phione) and My Pokémon Ranch on Wii (Mew, Phione).', test: d => d.c === 'Spin-off' },
   { name: 'Events', note: 'Event-only. Fan-run WFC servers still hand these out.', test: d => d.c === 'EVENT' },
 ];
 const TIER_NOTES = [
@@ -304,20 +306,23 @@ function badges() {
     ['◆', 'First 100', Math.min(n, 100), 100], ['◆', 'Halfway (247)', Math.min(n, 247), 247], ['◆', 'Diploma (484)', Math.min(n, 484), 484], ['♛', 'Living dex (493)', n, 493],
     ['⚡', 'Every legendary', legends.filter(isGot).length, legends.length], ['⇄', 'Every trade evo', trades.filter(isGot).length, trades.length],
     ['✿', 'All 12 starters', starters.filter(isGot).length, 12],
+    ['👁', 'Sinnoh Dex seen', SIN.filter(s => isSeen(s.id)).length, 210], ['◓', 'Sinnoh Dex caught', SIN.filter(s => isCaughtR(s.id)).length, 210],
   ];
   $('#badges').replaceChildren(...B.map(([i, name, got, tot]) => el('div', { class: 'badge' + (got >= tot ? ' earned' : '') }, el('div', { class: 'bi', text: i }), el('b', { text: name }), el('span', { text: `${got}/${tot}` }))));
 }
 function encode() {
-  const bytes = new Uint8Array(62);
-  for (const id of Object.keys(S.boxed)) { const i = +id - 1; bytes[i >> 3] |= 1 << (i & 7); }
-  return 'PLD1-' + btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const bytes = new Uint8Array(62 * 3);
+  [S.boxed, S.seen, S.caught].forEach((set, k) => { for (const id of Object.keys(set)) { const i = +id - 1; bytes[k * 62 + (i >> 3)] |= 1 << (i & 7); } });
+  return 'PLD2-' + btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 function decode(code) {
-  const m = code.trim().match(/^PLD1-([A-Za-z0-9_-]+)$/); if (!m) return null;
-  let b = m[1].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
-  const s = atob(b); const ids = [];
-  for (let i = 0; i < 493; i++) if (s.charCodeAt(i >> 3) & (1 << (i & 7))) ids.push(i + 1);
-  return ids;
+  const m = code.trim().match(/^PLD([12])-([A-Za-z0-9_-]+)$/); if (!m) return null;
+  let b = m[2].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
+  const s = atob(b); const sets = [[], [], []];
+  const n = m[1] === '2' ? 3 : 1;
+  for (let k = 0; k < n; k++) for (let i = 0; i < 493; i++) if (s.charCodeAt(k * 62 + (i >> 3)) & (1 << (i & 7))) sets[k].push(i + 1);
+  sets.v2 = n === 3;
+  return sets;
 }
 function initMore() {
   $('#copyCode').addEventListener('click', async () => {
@@ -326,9 +331,11 @@ function initMore() {
   });
   $('#showCode').addEventListener('click', () => { $('#codeBox').value = encode(); $('#codeBox').select(); });
   $('#loadCode').addEventListener('click', () => {
-    let ids; try { ids = decode($('#codeBox').value); } catch (e) { ids = null; }
-    if (!ids) { toast('That isn\'t a progress code — it starts with PLD1-'); return; }
-    const now = Date.now(); S.boxed = {}; ids.forEach(id => S.boxed[id] = now); save(); refresh(); toast(`Loaded ${ids.length} boxed Pokémon`);
+    let sets; try { sets = decode($('#codeBox').value); } catch (e) { sets = null; }
+    if (!sets) { toast('That isn\'t a progress code — it starts with PLD'); return; }
+    const now = Date.now(); S.boxed = {}; sets[0].forEach(id => S.boxed[id] = now);
+    if (sets.v2) { S.seen = {}; S.caught = {}; sets[1].forEach(id => S.seen[id] = now); sets[2].forEach(id => S.caught[id] = now); }
+    save(); refresh(); toast(`Loaded ${sets[0].length} boxed · ${sets[1].length} seen · ${sets[2].length} caught`);
   });
   $('#exportBtn').addEventListener('click', () => {
     const blob = new Blob([JSON.stringify({ app: 'platinum-living-dex', v: 1, saved: new Date().toISOString(), ...S }, null, 1)], { type: 'application/json' });
@@ -341,15 +348,114 @@ function initMore() {
       const v = JSON.parse(await f.text());
       if (v.app !== 'platinum-living-dex' && !Array.isArray(v.caught)) throw 0;
       if (Array.isArray(v.caught)) { S.boxed = {}; v.caught.forEach(id => S.boxed[id] = Date.now()); }
-      else S = { boxed: v.boxed || {}, have: v.have || {}, notes: v.notes || {}, timers: v.timers || {} };
+      else S = Object.assign(fresh(), v); delete S.app; delete S.v; delete S.saved;
       save(); refresh(); toast(`Restored ${gotCount()} boxed Pokémon`);
     } catch (err) { toast('That file isn\'t a tracker backup'); }
     e.target.value = '';
   });
   $('#resetBtn').addEventListener('click', () => { $('#resetConfirm').hidden = false; });
   $('#resetNo').addEventListener('click', () => { $('#resetConfirm').hidden = true; });
-  $('#resetYes').addEventListener('click', () => { S = { boxed: {}, have: {}, notes: {}, timers: {} }; save(); refresh(); $('#resetConfirm').hidden = true; toast('Progress cleared'); });
+  $('#resetYes').addEventListener('click', () => { S = fresh(); save(); refresh(); $('#resetConfirm').hidden = true; toast('Progress cleared'); });
   $('#version').textContent = 'Data version ' + window.DATA_VERSION;
+}
+
+
+/* ---------------- SINNOH DEX view ---------------- */
+const BALL = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M2 12h20" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="3.4" fill="var(--surface)" stroke="currentColor" stroke-width="2.2"/></svg>';
+const SIN = window.SINNOH, SINBY = new Map(SIN.map(s => [s.id, s]));
+const isSeen = id => !!(S.seen[id] || S.caught[id]);
+const isCaughtR = id => !!S.caught[id];
+let sshow = 'all';
+const srows = new Map(), sopen = new Set();
+SIN.forEach(s => s.key = norm(BY.get(s.id).n));
+function seenHint(s) {
+  if (s.tip) return s.tip;
+  if (s.how === 'catch') return 'Wild: ' + s.wild.split('; ').slice(0, 2).join('; ');
+  if (s.tr.length) return 'Battle: ' + s.tr[0] + (s.trAll > 1 ? ` (+${s.trAll - 1} more)` : '');
+  if (s.how === 'evolve') return 'Evolve: ' + s.wild;
+  return 'See details';
+}
+function sinFlags(s) {
+  const f = [];
+  if (s.how !== 'catch' && !s.tip && s.trN <= 1) f.push(['Rare sighting', 'warn']);
+  if (s.how !== 'catch' && !s.tip && s.trN === 0 && s.trAll > 0) f.push(['Post-game trainer only', 'warn']);
+  if (s.how === 'special' || s.tip) f.push(['Special', 'tier7']);
+  if (s.how === 'catch') f.push(['Catchable in story', 'tier0']);
+  else if (s.how === 'evolve') f.push(['Evolve or battle', 'tier1']);
+  return f;
+}
+function setSeen(id, on) { if (on) S.seen[id] = Date.now(); else { delete S.seen[id]; delete S.caught[id]; } save(); afterSin(id, on ? 'seen' : null); }
+function setCaughtR(id, on) { if (on) { S.caught[id] = Date.now(); S.seen[id] = S.seen[id] || Date.now(); } else delete S.caught[id]; save(); afterSin(id, on ? 'caught' : null); }
+function afterSin(id, what) {
+  const n = BY.get(id).n, seenN = SIN.filter(s => isSeen(s.id)).length, caughtN = SIN.filter(s => isCaughtR(s.id)).length;
+  if (what === 'seen') toast(`${n} seen · ${seenN}/210`);
+  else if (what === 'caught') toast(`${n} caught · ${caughtN}/210`);
+  if (what && seenN === 210 && !afterSin.done) { afterSin.done = true; confetti(); setTimeout(() => toast('All 210 seen! Go see Prof. Rowan for the National Dex.'), 400); }
+  if (what === 'caught' && [50, 100, 150, 210].includes(caughtN)) { confetti(); setTimeout(() => toast(`${caughtN} Sinnoh Pokémon caught!`), 400); }
+  refresh();
+  if (drawerId === id) openDrawer(id);
+}
+function sinDetail(s, inDrawer) {
+  const d = BY.get(s.id);
+  return el('div', { class: 'sdetail' },
+    s.tip ? el('div', {}, el('h5', { text: 'How to see it' }), el('p', { style: 'margin:2px 0 0', text: s.tip })) : null,
+    s.how === 'catch' ? el('div', {}, el('h5', { text: 'Catch it during the story' }), el('ul', {}, s.wild.split('; ').map(w => el('li', { text: w })))) : null,
+    s.how === 'evolve' ? el('div', {}, el('h5', { text: 'Evolve' }), el('p', { style: 'margin:2px 0 0', text: s.wild })) : null,
+    s.tr.length ? el('div', {}, el('h5', { text: `Trainers who use it (${s.trAll}) — battling them counts as seen` }), el('ul', {}, s.tr.map(t => el('li', { text: t })), s.more ? el('li', { text: `+${s.more} more` }) : null)) : null,
+    !s.tip && !s.tr.length && s.how === 'special' ? el('p', { text: d.w }) : null,
+    inDrawer ? null : el('div', { class: 'row' }, el('button', { type: 'button', class: 'ghost', text: 'Full details', onclick: () => openDrawer(s.id) })));
+}
+function buildSin() {
+  const ul = $('#slist'), frag = document.createDocumentFragment();
+  for (const s of SIN) {
+    const d = BY.get(s.id);
+    const eye = el('button', { type: 'button', class: 'sbtn eye', 'aria-label': 'Seen: ' + d.n, title: 'Seen', text: '👁' });
+    const ball = el('button', { type: 'button', class: 'sbtn ball', 'aria-label': 'Caught: ' + d.n, title: 'Caught' }); ball.innerHTML = BALL;
+    eye.addEventListener('click', () => setSeen(s.id, !isSeen(s.id)));
+    ball.addEventListener('click', () => setCaughtR(s.id, !isCaughtR(s.id)));
+    const hint = el('div', { class: 'shint' }), chipsEl = el('div', { class: 'chips' });
+    const main = el('div', { class: 'sm', tabindex: 0 }, el('span', { class: 'snm', text: d.n }), hint, chipsEl);
+    const li = el('li', { class: 'srow' }, el('span', { class: 'rn', text: String(s.rn).padStart(3, '0') }), img(s.id), main, el('div', { class: 'sbtns' }, eye, ball));
+    const toggle = () => { if (sopen.has(s.id)) { sopen.delete(s.id); li.querySelector('.sdetail')?.remove(); } else { sopen.add(s.id); li.append(sinDetail(s)); } };
+    main.addEventListener('click', toggle);
+    main.addEventListener('keydown', e => { if (e.key === 'Enter') toggle(); });
+    hint.textContent = seenHint(s);
+    sinFlags(s).forEach(([t, c]) => chipsEl.append(chip(t, c)));
+    srows.set(s.id, { li, eye, ball });
+    frag.append(li);
+  }
+  ul.append(frag, el('li', { class: 'empty', id: 'sNoRes', hidden: true, text: 'Nothing matches that.' }));
+  $('#sq').addEventListener('input', renderSin);
+  $('#sHow').addEventListener('change', renderSin);
+  $('#sqClear').addEventListener('click', () => { $('#sq').value = ''; renderSin(); $('#sq').focus(); });
+  $$('[data-sshow]').forEach(b => b.addEventListener('click', () => { sshow = b.dataset.sshow; $$('[data-sshow]').forEach(x => x.setAttribute('aria-pressed', x === b)); renderSin(); }));
+}
+function sinMatch(s) {
+  const q = norm($('#sq').value.trim());
+  if (q) { if (/^\d+$/.test(q)) { if (!String(s.rn).padStart(3, '0').startsWith(q.padStart(Math.min(q.length, 3), '0')) && String(s.rn) !== q) return false; } else if (!s.key.includes(q)) return false; }
+  if (sshow === 'unseen' && isSeen(s.id)) return false;
+  if (sshow === 'seen' && (!isSeen(s.id) || isCaughtR(s.id))) return false;
+  if (sshow === 'caught' && !isCaughtR(s.id)) return false;
+  const h = $('#sHow').value;
+  if (h === 'trainer' && s.how === 'catch') return false;
+  if (h === 'rare' && !(s.how !== 'catch' && s.trN <= 2 && s.trAll > 0)) return false;
+  if (h === 'special' && !(s.how === 'special' || s.tip)) return false;
+  return true;
+}
+function renderSin() {
+  let shown = 0;
+  for (const s of SIN) {
+    const { li, eye, ball } = srows.get(s.id), se = isSeen(s.id), ca = isCaughtR(s.id), ok = sinMatch(s);
+    li.classList.toggle('seen', se && !ca); li.classList.toggle('caught', ca);
+    eye.setAttribute('aria-pressed', se); ball.setAttribute('aria-pressed', ca);
+    li.hidden = !ok; if (ok) shown++;
+  }
+  $('#sNoRes').hidden = shown > 0;
+  const seenN = SIN.filter(s => isSeen(s.id)).length, caughtN = SIN.filter(s => isCaughtR(s.id)).length;
+  $('#sSeen').textContent = seenN; $('#sCaught').textContent = caughtN;
+  $('#sSeenBar').style.width = seenN / 2.1 + '%'; $('#sCaughtBar').style.width = caughtN / 2.1 + '%';
+  $('#sGoal').textContent = seenN === 210 ? 'All 210 seen! After the Hall of Fame, talk to Prof. Rowan in Sandgem Town to get the National Dex.' :
+    `${210 - seenN} left to see. See all 210, then talk to Prof. Rowan after the Hall of Fame to unlock the National Dex. Seeing is enough — battling a trainer's Pokémon counts.`;
 }
 
 /* ---------------- drawer ---------------- */
@@ -385,6 +491,11 @@ function openDrawer(id) {
       el('div', {}, el('span', { class: 'num', text: '#' + pad(id) + ' · ' + regionOf(id) }), el('h3', { text: d.n }),
         el('div', { class: 'chips', style: 'margin-top:6px' }, chip(d.c), chip(TIERS[d.rank], 'tier' + d.rank), d.cp ? chip('catch ×' + d.cp, 'cp') : null))),
     el('label', { class: 'boxit' + (got ? ' got' : '') }, tick, got ? `Boxed ${new Date(S.boxed[id]).toLocaleDateString()}` : 'Mark as boxed'),
+    SINBY.has(id) ? el('div', { class: 'dsec' }, el('h4', { text: `Sinnoh Dex #${String(SINBY.get(id).rn).padStart(3, '0')}` }),
+      el('div', { class: 'row' },
+        el('button', { type: 'button', class: isSeen(id) ? '' : 'ghost', text: isSeen(id) ? '👁 Seen' : '👁 Mark seen', onclick: () => setSeen(id, !isSeen(id)) }),
+        el('button', { type: 'button', class: isCaughtR(id) ? '' : 'ghost', text: isCaughtR(id) ? '✓ Caught' : 'Mark caught', onclick: () => setCaughtR(id, !isCaughtR(id)) })),
+      sinDetail(SINBY.get(id), true)) : null,
     el('dl', { class: 'dl' },
       el('dt', { text: 'Source game' }), el('dd', { text: d.src }),
       el('dt', { text: 'Gets to Platinum' }), el('dd', { text: d.tr }),
@@ -406,7 +517,7 @@ function closeDrawer() {
 
 /* ---------------- views + refresh ---------------- */
 let view = 'dex';
-const RENDER = { dex: renderGrid, boxes: renderBoxes, plan: renderPlan, today: renderToday, dupes: renderDupes, more: badges };
+const RENDER = { sinnoh: renderSin, dex: renderGrid, boxes: renderBoxes, plan: renderPlan, today: renderToday, dupes: renderDupes, more: badges };
 function setView(v) {
   view = v;
   $$('.view').forEach(s => s.hidden = s.id !== 'view-' + v);
@@ -418,7 +529,7 @@ function setView(v) {
 function refresh() { header(); RENDER[view](); }
 
 function init() {
-  load(); buildGrid(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore();
+  load(); buildSin(); buildGrid(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore();
   $$('[data-view]').forEach(b => b.addEventListener('click', () => { setView(b.dataset.view); scrollTo({ top: 0 }); }));
   $('#scrim').addEventListener('click', closeDrawer);
   addEventListener('keydown', e => { if (e.key === 'Escape' && drawerId) closeDrawer(); });
@@ -430,8 +541,8 @@ function init() {
   setInterval(() => { if (view === 'today') renderToday(); }, 60e3);
   addEventListener('storage', e => { if (e.key === KEY) { load(); refresh(); } });
   let start = location.hash.slice(1);
-  if (!RENDER[start]) { try { start = localStorage.getItem('pld-view') || 'dex'; } catch (e) { start = 'dex'; } }
-  header(); setView(RENDER[start] ? start : 'dex');
+  if (!RENDER[start]) { try { start = localStorage.getItem('pld-view') || 'sinnoh'; } catch (e) { start = 'sinnoh'; } }
+  header(); setView(RENDER[start] ? start : 'sinnoh');
 }
 init();
 })();
