@@ -318,11 +318,24 @@ const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 function b32(bytes) { let out = '', bits = 0, val = 0; for (const x of bytes) { val = (val << 8) | x; bits += 8; while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; } } if (bits) out += B32[(val << (5 - bits)) & 31]; return out; }
 function unb32(str) { const out = []; let bits = 0, val = 0; for (const ch of str) { const i = B32.indexOf(ch); if (i < 0) throw 0; val = (val << 5) | i; bits += 5; if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } } return out; }
 function bitset(set) { const by = new Uint8Array(62); for (const id of Object.keys(set)) { const i = +id - 1; if (i >= 0 && i < 493) by[i >> 3] |= 1 << (i & 7); } let n = 62; while (n && !by[n - 1]) n--; return by.slice(0, n); }
-// PLD3: letters and digits only (survives texting/autocorrect). Caught section, '9', seen section. Trailing empty bytes dropped, so early runs give short codes.
-function encode() { return 'PLD3' + b32(bitset(S.boxed)) + '9' + b32(bitset(S.seen)); }
+// Progress code: letters and digits only (survives texting/autocorrect).
+// PLD4 + [caught section] 9 [seen-but-not-caught section]; each section is the shorter of
+// L + id list (delta varints) or B + bitset, so early runs give very short codes.
+function listEnc(ids) { let out = '', prev = 0; for (const id of ids) { let d = id - prev - 1; prev = id; const ch = []; do { ch.unshift(d & 15); d >>= 4; } while (d); ch.forEach((v, k) => out += B32[v | (k < ch.length - 1 ? 16 : 0)]); } return out; }
+function listDec(str) { const r = []; let prev = 0, acc = 0; for (const c of str) { const v = B32.indexOf(c); if (v < 0) throw 0; acc = (acc << 4) | (v & 15); if (!(v & 16)) { prev = prev + acc + 1; r.push(prev); acc = 0; } } return r; }
+function section(ids) { const set = {}; ids.forEach(i => set[i] = 1); const L = 'L' + listEnc(ids), B = 'B' + b32(bitset(set)); return L.length <= B.length ? L : B; }
+function sectionDec(str) { if (!str) return []; if (str[0] === 'L') return listDec(str.slice(1)); if (str[0] === 'B') { const r = []; unb32(str.slice(1)).forEach((x, k) => { for (let j = 0; j < 8; j++) if (x & (1 << j) && k * 8 + j < 493) r.push(k * 8 + j + 1); }); return r; } throw 0; }
+function encode() {
+  const caught = Object.keys(S.boxed).map(Number).filter(n => n >= 1 && n <= 493).sort((a, b) => a - b);
+  const seenOnly = Object.keys(S.seen).map(Number).filter(n => n >= 1 && n <= 493 && !S.boxed[n]).sort((a, b) => a - b);
+  return 'PLD4' + section(caught) + '9' + section(seenOnly);
+}
 function decode(code) {
   let c = String(code).toUpperCase().replace(/[\u2010-\u2015\u2212]/g, m => m === '\u2014' ? '--' : '-');
-  const m3 = c.replace(/[^A-Z0-9]/g, '').match(/PLD3([A-Z2-7]*)9([A-Z2-7]*)/);
+  const flat = c.replace(/[^A-Z0-9]/g, '');
+  const m4 = flat.match(/PLD4([LB][A-Z2-7]*)9([LB][A-Z2-7]*)/);
+  if (m4) { const caught = sectionDec(m4[1]), seenOnly = sectionDec(m4[2]); const sets = [caught, [...caught, ...seenOnly], []]; sets.v2 = true; return sets; }
+  const m3 = flat.match(/PLD3([A-Z2-7]*)9([A-Z2-7]*)/);
   const ids = by => { const r = []; by.forEach((x, k) => { for (let j = 0; j < 8; j++) if (x & (1 << j) && k * 8 + j < 493) r.push(k * 8 + j + 1); }); return r; };
   if (m3) { const sets = [ids(unb32(m3[1])), ids(unb32(m3[2])), []]; sets.v2 = true; return sets; }
   // older PLD1/PLD2 codes (base64url) — tolerate spaces, line breaks and phone dash substitutions
