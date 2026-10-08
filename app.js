@@ -314,17 +314,24 @@ function badges() {
   ];
   $('#badges').replaceChildren(...B.map(([i, name, got, tot]) => el('div', { class: 'badge' + (got >= tot ? ' earned' : '') }, el('div', { class: 'bi', text: i }), el('b', { text: name }), el('span', { text: `${got}/${tot}` }))));
 }
-function encode() {
-  const bytes = new Uint8Array(62 * 3);
-  [S.boxed, S.seen, {}].forEach((set, k) => { for (const id of Object.keys(set)) { const i = +id - 1; bytes[k * 62 + (i >> 3)] |= 1 << (i & 7); } });
-  return 'PLD2-' + btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function b32(bytes) { let out = '', bits = 0, val = 0; for (const x of bytes) { val = (val << 8) | x; bits += 8; while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; } } if (bits) out += B32[(val << (5 - bits)) & 31]; return out; }
+function unb32(str) { const out = []; let bits = 0, val = 0; for (const ch of str) { const i = B32.indexOf(ch); if (i < 0) throw 0; val = (val << 5) | i; bits += 5; if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } } return out; }
+function bitset(set) { const by = new Uint8Array(62); for (const id of Object.keys(set)) { const i = +id - 1; if (i >= 0 && i < 493) by[i >> 3] |= 1 << (i & 7); } let n = 62; while (n && !by[n - 1]) n--; return by.slice(0, n); }
+// PLD3: letters and digits only (survives texting/autocorrect). Caught section, '9', seen section. Trailing empty bytes dropped, so early runs give short codes.
+function encode() { return 'PLD3' + b32(bitset(S.boxed)) + '9' + b32(bitset(S.seen)); }
 function decode(code) {
-  const m = code.trim().match(/^PLD([12])-([A-Za-z0-9_-]+)$/); if (!m) return null;
+  let c = String(code).toUpperCase().replace(/[\u2010-\u2015\u2212]/g, m => m === '\u2014' ? '--' : '-');
+  const m3 = c.replace(/[^A-Z0-9]/g, '').match(/PLD3([A-Z2-7]*)9([A-Z2-7]*)/);
+  const ids = by => { const r = []; by.forEach((x, k) => { for (let j = 0; j < 8; j++) if (x & (1 << j) && k * 8 + j < 493) r.push(k * 8 + j + 1); }); return r; };
+  if (m3) { const sets = [ids(unb32(m3[1])), ids(unb32(m3[2])), []]; sets.v2 = true; return sets; }
+  // older PLD1/PLD2 codes (base64url) — tolerate spaces, line breaks and phone dash substitutions
+  const raw = String(code).replace(/[\u2014]/g, '--').replace(/[\u2010-\u2013\u2015\u2212]/g, '-').replace(/\s+/g, '');
+  const m = raw.match(/PLD([12])-([A-Za-z0-9_-]+)/i); if (!m) return null;
   let b = m[2].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
-  const s = atob(b); const sets = [[], [], []];
+  const st = atob(b); const sets = [[], [], []];
   const n = m[1] === '2' ? 3 : 1;
-  for (let k = 0; k < n; k++) for (let i = 0; i < 493; i++) if (s.charCodeAt(k * 62 + (i >> 3)) & (1 << (i & 7))) sets[k].push(i + 1);
+  for (let k = 0; k < n; k++) for (let i = 0; i < 493; i++) if (st.charCodeAt(k * 62 + (i >> 3)) & (1 << (i & 7))) sets[k].push(i + 1);
   sets.v2 = n === 3;
   return sets;
 }
@@ -336,7 +343,7 @@ function initMore() {
   $('#showCode').addEventListener('click', () => { $('#codeBox').value = encode(); $('#codeBox').select(); });
   $('#loadCode').addEventListener('click', () => {
     let sets; try { sets = decode($('#codeBox').value); } catch (e) { sets = null; }
-    if (!sets) { toast('That isn\'t a progress code — it starts with PLD'); return; }
+    if (!sets) { toast('Couldn\'t read that code — copy it again with Copy progress code'); return; }
     const now = Date.now(); S.boxed = {}; sets[0].forEach(id => S.boxed[id] = now);
     if (sets.v2) { S.seen = {}; S.caught = {}; sets[1].forEach(id => S.seen[id] = now); sets[2].forEach(id => { S.boxed[id] = now; S.seen[id] = now; }); }
     save(); refresh(); publish('sync'); toast(`Loaded ${sets[0].length} boxed · ${sets[1].length} seen · ${sets[2].length} caught`);
