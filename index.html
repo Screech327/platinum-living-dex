@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20261008155940">
+<link rel="stylesheet" href="styles.css?v=20261008160301">
 </head>
 <body>
 <div class="app">
@@ -130,6 +130,22 @@
       <h2>Badges</h2>
       <div id="badges" class="badges"></div>
 
+      <h2>Sync your phone and computer</h2>
+      <div id="syncSetup">
+        <p class="sub">Check something off on one device and it shows up on the other within a few seconds. Your progress is saved in a private file (a secret Gist) on your GitHub account. One-time setup:</p>
+        <ol class="steps" style="margin-bottom:10px">
+          <li><a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Platinum%20Living%20Dex%20sync" target="_blank" rel="noopener"><b>Open this GitHub page</b></a>. It's already filled in with the only permission needed (<b>gist</b>). Set <b>Expiration</b> to <b>No expiration</b>, then click <b>Generate token</b> at the bottom.</li>
+          <li>Copy the key it shows (starts with <code>ghp_</code>) and paste it below, then <b>Connect</b>.</li>
+          <li>Do the same on your other device with the <b>same key</b> — save it in your notes so you can paste it there.</li>
+        </ol>
+        <div class="row"><input id="syncToken" class="keybox" type="password" autocomplete="off" placeholder="Paste your GitHub key (ghp_…)" aria-label="GitHub key"><button type="button" id="syncConnect">Connect</button></div>
+      </div>
+      <div id="syncOn" hidden>
+        <p class="sub" style="margin-bottom:6px">✓ This device is syncing. Check-offs, copies, notes and timers stay the same on every device using your key.</p>
+        <div class="row"><button type="button" class="ghost" id="syncNowBtn">Sync now</button><button type="button" class="ghost" id="syncOff">Stop syncing on this device</button></div>
+      </div>
+      <p class="sub" id="syncStatus" style="margin-top:4px"></p>
+
       <h2>Stream overlay (OBS)</h2>
       <p class="sub">Shows your count on stream and pops up the sprite every time you check one off — from this page or your phone. Turn it on, then paste the overlay link into an OBS <b>Browser</b> source (width 460, height 300).</p>
       <label class="switch"><input type="checkbox" id="streamOn"> <span>Send my check-offs to the stream overlay</span></label>
@@ -146,8 +162,8 @@
         <p class="sub">Overlay options you can add to the end of a link: <code>&amp;scale=1.5</code> bigger · <code>&amp;pop=0</code> no pop-ups · <code>&amp;label=0</code> hide the label · <code>&amp;dot=0</code> hide the connection dot.</p>
       </div>
 
-      <h2>Move progress between your phone and computer</h2>
-      <p class="sub">Each browser keeps its own progress. To copy it over: tap <b>Copy progress code</b> on one device, send it to yourself (text, email, notes), then paste it on the other.</p>
+      <h2>Progress code (manual copy)</h2>
+      <p class="sub">If you don't use sync: tap <b>Copy progress code</b> on one device, send it to yourself, then paste it on the other.</p>
       <div class="row">
         <button type="button" id="copyCode">Copy progress code</button>
         <button type="button" class="ghost" id="showCode">Show code</button>
@@ -187,7 +203,7 @@
 <div class="toast" id="toast" role="status"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
-<script src="data.js?v=20261008155940"></script>
-<script src="app.js?v=20261008155940"></script>
+<script src="data.js?v=20261008160301"></script>
+<script src="app.js?v=20261008160301"></script>
 </body>
 </html>

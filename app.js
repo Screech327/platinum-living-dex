@@ -23,13 +23,31 @@ const img = (id, cls = 'px') => el('img', { class: cls, src: SPRITE(id), alt: ''
 /* ---------------- state ---------------- */
 let S = { boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {} };
 const fresh = () => ({ boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {} });
+
 let storageOK = true;
 function load() {
   try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); for (const [id, t] of Object.entries(S.caught || {})) { S.boxed[id] = S.boxed[id] || t; S.seen[id] = S.seen[id] || t; } if (Object.keys(S.caught).length) { S.caught = {}; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} } }
   catch (e) { storageOK = false; }
+  initMt();
+}
+/* change tracking: every key in these sections gets a modified-time in S.mt, so two devices can merge (newest wins per Pokémon) */
+const SECS = ['boxed', 'seen', 'have', 'notes', 'timers'];
+let LAST = {}, MTREF = {};
+const snap = () => { const o = {}; for (const sec of SECS) for (const [k, v] of Object.entries(S[sec] || {})) o[sec + ':' + k] = JSON.stringify(v); return o; };
+function stamp() {
+  if (!S.mt) S.mt = MTREF;
+  const now = Date.now(), cur = snap();
+  for (const k of new Set([...Object.keys(cur), ...Object.keys(LAST)])) if (cur[k] !== LAST[k]) S.mt[k] = now;
+  LAST = cur; MTREF = S.mt;
+}
+function initMt() {
+  if (!S.mt) S.mt = {};
+  for (const sec of ['boxed', 'seen']) for (const [k, v] of Object.entries(S[sec])) if (!S.mt[sec + ':' + k]) S.mt[sec + ':' + k] = typeof v === 'number' && v > 1e12 ? v : 1;
+  LAST = snap(); MTREF = S.mt;
 }
 let saveT;
 function save() {
+  stamp(); if (typeof syncSoon === 'function') syncSoon();
   clearTimeout(saveT);
   saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; } catch (e) { storageOK = false; toast('This browser is blocking saving — download a backup from More.'); } }, 120);
 }
@@ -372,14 +390,14 @@ function initMore() {
       const v = JSON.parse(await f.text());
       if (v.app !== 'platinum-living-dex' && !Array.isArray(v.caught)) throw 0;
       if (Array.isArray(v.caught)) { S.boxed = {}; v.caught.forEach(id => S.boxed[id] = Date.now()); }
-      else { S = Object.assign(fresh(), v); delete S.app; delete S.v; delete S.saved; for (const [id, t] of Object.entries(S.caught || {})) { S.boxed[id] = S.boxed[id] || t; S.seen[id] = S.seen[id] || t; } S.caught = {}; }
+      else { const mt = S.mt; S = Object.assign(fresh(), v); S.mt = mt; delete S.app; delete S.v; delete S.saved; for (const [id, t] of Object.entries(S.caught || {})) { S.boxed[id] = S.boxed[id] || t; S.seen[id] = S.seen[id] || t; } S.caught = {}; }
       save(); refresh(); publish('sync'); toast(`Restored ${gotCount()} boxed Pokémon`);
     } catch (err) { toast('That file isn\'t a tracker backup'); }
     e.target.value = '';
   });
   $('#resetBtn').addEventListener('click', () => { $('#resetConfirm').hidden = false; });
   $('#resetNo').addEventListener('click', () => { $('#resetConfirm').hidden = true; });
-  $('#resetYes').addEventListener('click', () => { S = fresh(); save(); refresh(); publish('sync'); $('#resetConfirm').hidden = true; toast('Progress cleared'); });
+  $('#resetYes').addEventListener('click', () => { S = Object.assign(fresh(), { mt: S.mt }); save(); refresh(); publish('sync'); $('#resetConfirm').hidden = true; toast('Progress cleared'); });
   $('#version').textContent = 'Data version ' + window.DATA_VERSION;
 }
 
@@ -537,6 +555,103 @@ function initStream() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden && ST.on) publish('sync'); });
 }
 
+
+/* ---------------- DEVICE SYNC (private GitHub Gist + ntfy ping) ---------------- */
+const SYNCKEY = 'pld-sync', GFILE = 'platinum-living-dex-progress.json';
+let SY = { token: '', gist: '', last: 0 };
+try { SY = Object.assign(SY, JSON.parse(localStorage.getItem(SYNCKEY) || '{}')); } catch (e) {}
+const saveSY = () => { try { localStorage.setItem(SYNCKEY, JSON.stringify(SY)); } catch (e) {} };
+const DEVICE = (() => { try { let d = localStorage.getItem('pld-device'); if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem('pld-device', d); } return d; } catch (e) { return 'x'; } })();
+let syncBusy = false, syncAgain = false, syncT, es2 = null, syncErr = '';
+const gh = (path, opt = {}) => fetch('https://api.github.com' + path, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + SY.token, Accept: 'application/vnd.github+json' }, opt.headers || {}) }))
+  .then(async r => { if (!r.ok) { const e = new Error(r.status === 401 ? 'GitHub rejected the key — make a new one' : r.status === 404 ? 'Sync file not found' : 'GitHub error ' + r.status); e.status = r.status; throw e; } return r.json(); });
+const payload = () => JSON.stringify({ app: 'platinum-living-dex', v: 2, saved: new Date().toISOString(), boxed: S.boxed, seen: S.seen, have: S.have, notes: S.notes, timers: S.timers, mt: S.mt });
+function merge(R) {
+  if (!R || !R.mt) return { changed: false, localNewer: true };
+  let changed = false, localNewer = false;
+  const keys = new Set([...Object.keys(S.mt), ...Object.keys(R.mt)]);
+  for (const k of keys) {
+    const lt = S.mt[k] || 0, rt = R.mt[k] || 0;
+    const i = k.indexOf(':'), sec = k.slice(0, i), id = k.slice(i + 1);
+    if (!SECS.includes(sec)) continue;
+    if (rt > lt) {
+      const rv = (R[sec] || {})[id];
+      if (rv === undefined) { if (id in S[sec]) { delete S[sec][id]; changed = true; } }
+      else if (JSON.stringify(S[sec][id]) !== JSON.stringify(rv)) { S[sec][id] = rv; changed = true; }
+      S.mt[k] = rt;
+    } else if (lt > rt) localNewer = true;
+  }
+  LAST = snap();
+  if (changed) { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} refresh(); if (drawerId) openDrawer(drawerId); publish('sync'); }
+  return { changed, localNewer };
+}
+async function readGist() {
+  const g = await gh('/gists/' + SY.gist, { cache: 'no-store' });
+  const f = g.files && g.files[GFILE]; if (!f) return null;
+  const txt = f.truncated ? await fetch(f.raw_url, { cache: 'no-store' }).then(r => r.text()) : f.content;
+  try { return JSON.parse(txt); } catch (e) { return null; }
+}
+async function syncNow(forcePush) {
+  if (!SY.token || !SY.gist) return;
+  if (syncBusy) { syncAgain = true; return; }
+  syncBusy = true;
+  try {
+    const R = await readGist();
+    const { changed, localNewer } = merge(R);
+    if (localNewer || forcePush || !R) {
+      await gh('/gists/' + SY.gist, { method: 'PATCH', body: JSON.stringify({ files: { [GFILE]: { content: payload() } } }) });
+      fetch('https://ntfy.sh/' + pingTopic(), { method: 'POST', body: DEVICE }).catch(() => {});
+    }
+    SY.last = Date.now(); syncErr = ''; saveSY();
+    if (changed) toast('Synced from your other device');
+  } catch (e) { syncErr = e.message || 'Could not reach GitHub'; }
+  syncBusy = false; renderSync();
+  if (syncAgain) { syncAgain = false; syncNow(); }
+}
+function syncSoon() { if (!SY.token || !SY.gist) return; clearTimeout(syncT); syncT = setTimeout(() => syncNow(), 1200); }
+const pingTopic = () => 'pld-sync-' + SY.gist.slice(0, 40);
+function listen() {
+  if (es2) { es2.close(); es2 = null; }
+  if (!SY.gist) return;
+  try { es2 = new EventSource(`https://ntfy.sh/${pingTopic()}/sse`); } catch (e) { return; }
+  es2.onmessage = e => { let d; try { d = JSON.parse(e.data); } catch (x) { return; } if (d.event === 'message' && d.message !== DEVICE) syncNow(); };
+  es2.onerror = () => { es2.close(); es2 = null; setTimeout(listen, 15000); };
+}
+async function connectSync(token) {
+  SY.token = token.trim(); syncErr = ''; renderSync('Connecting…');
+  try {
+    let found = null;
+    for (let page = 1; page <= 5 && !found; page++) {
+      const list = await gh(`/gists?per_page=100&page=${page}`, { cache: 'no-store' });
+      found = list.find(g => g.files && g.files[GFILE]);
+      if (list.length < 100) break;
+    }
+    if (found) { SY.gist = found.id; saveSY(); await syncNow(true); toast('Connected — your devices now share progress'); }
+    else {
+      const g = await gh('/gists', { method: 'POST', body: JSON.stringify({ description: 'Platinum Living Dex progress (synced by the tracker site)', public: false, files: { [GFILE]: { content: payload() } } }) });
+      SY.gist = g.id; SY.last = Date.now(); saveSY(); toast('Sync set up — now paste the same key on your other device');
+    }
+    listen();
+  } catch (e) { SY.token = ''; SY.gist = ''; saveSY(); syncErr = e.message || 'Could not connect'; }
+  renderSync();
+}
+function renderSync(msg) {
+  const on = !!(SY.token && SY.gist);
+  $('#syncSetup').hidden = on; $('#syncOn').hidden = !on;
+  const ago = SY.last ? Math.round((Date.now() - SY.last) / 1000) : null;
+  $('#syncStatus').textContent = msg || syncErr || (on ? (ago == null ? 'Connected' : `Last synced ${ago < 60 ? ago + 's' : Math.round(ago / 60) + ' min'} ago`) : '');
+  $('#syncStatus').style.color = syncErr ? 'var(--danger)' : '';
+}
+function initSync() {
+  $('#syncConnect').addEventListener('click', () => { const t = $('#syncToken').value.trim(); if (!/^(gh[pousr]_|github_pat_)[A-Za-z0-9_]{20,}$/.test(t)) { syncErr = 'That doesn\'t look like a GitHub key — it starts with ghp_ or github_pat_'; renderSync(); return; } $('#syncToken').value = ''; connectSync(t); });
+  $('#syncNowBtn').addEventListener('click', () => syncNow(true));
+  $('#syncOff').addEventListener('click', () => { SY = { token: '', gist: '', last: 0 }; saveSY(); if (es2) es2.close(); renderSync(); toast('This device stopped syncing (your progress here is kept)'); });
+  renderSync();
+  if (SY.token && SY.gist) { syncNow(); listen(); }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
+  setInterval(() => { if (!document.hidden) syncNow(); else renderSync(); }, 45000);
+}
+
 /* ---------------- drawer ---------------- */
 let drawerId = null, lastFocus = null;
 function whereList(text) {
@@ -610,7 +725,7 @@ function setView(v) {
 function refresh() { header(); RENDER[view](); }
 
 function init() {
-  load(); buildSin(); buildGrid(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore(); initStream();
+  load(); buildSin(); buildGrid(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore(); initStream(); initSync();
   $$('[data-view]').forEach(b => b.addEventListener('click', () => { setView(b.dataset.view); scrollTo({ top: 0 }); }));
   $('#scrim').addEventListener('click', closeDrawer);
   addEventListener('keydown', e => { if (e.key === 'Escape' && drawerId) closeDrawer(); });
