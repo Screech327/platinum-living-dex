@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20261014141658">
+<link rel="stylesheet" href="styles.css?v=20261014144815">
 </head>
 <body>
 <div class="app">
@@ -29,6 +29,7 @@
     <button type="button" data-view="sinnoh"><span class="ti">◐</span>Sinnoh</button>
     <button type="button" data-view="dex"><span class="ti">◉</span>Living</button>
     <button type="button" data-view="boxes"><span class="ti">▦</span>Boxes</button>
+    <button type="button" data-view="map"><span class="ti">⌖</span>Map</button>
     <button type="button" data-view="plan"><span class="ti">⚑</span>Plan</button>
     <button type="button" data-view="today"><span class="ti">◷</span>Today</button>
     <button type="button" data-view="dupes"><span class="ti">✕2</span>Copies</button>
@@ -102,6 +103,23 @@
       <div class="pcbox" id="pcbox"></div>
       <p class="hint">Tap a slot to see the Pokémon. Greyed-out slots are still empty. Swipe or use the arrows to change boxes.</p>
       <div class="boxdots" id="boxDots"></div>
+    </section>
+
+    <!-- MAP -->
+    <section id="view-map" class="view" hidden>
+      <div class="maptop">
+        <select id="mapPick" aria-label="Choose a location"><option value="">Jump to a location…</option></select>
+        <div class="seg" role="group" aria-label="Time of day">
+          <button type="button" data-time="0" aria-pressed="false">Morning</button>
+          <button type="button" data-time="1" aria-pressed="false">Day</button>
+          <button type="button" data-time="2" aria-pressed="false">Night</button>
+        </div>
+      </div>
+      <p class="sub" style="margin:6px 0 0">Tap a route, town, cave or lake. Platinum's clock: morning 4–10 AM, day 10 AM–8 PM, night 8 PM–4 AM. The map is a simplified layout of Sinnoh, not to scale.</p>
+      <div class="mapwrap">
+        <div class="mapbox"><svg id="mapSvg" viewBox="0 0 122 76" role="img" aria-label="Map of Sinnoh"></svg></div>
+        <div class="mappanel" id="mapPanel"><p class="sub">Pick a spot on the map to see what lives there.</p></div>
+      </div>
     </section>
 
     <!-- PLAN -->
@@ -210,7 +228,7 @@
 <div class="toast" id="toast" role="status"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
-<script src="data.js?v=20261014141658"></script>
-<script src="app.js?v=20261014141658"></script>
+<script src="data.js?v=20261014144815"></script>
+<script src="app.js?v=20261014144815"></script>
 </body>
 </html>

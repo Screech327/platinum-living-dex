@@ -81,7 +81,7 @@ m(442, 'Special', 'Put the Odd Keystone in the Hallowed Tower (Route 209), talk 
 m(425, 'Special', 'Valley Windworks gate on FRIDAYS, after clearing the Galactic grunts there (Lv15). One per week — breed Drifblim for extras.', 'Platinum', 'Fridays only')
 m(349, 'Special', 'Mt. Coronet B1F lake (the big room off Route 211 W): fish only 4 hidden tiles, which change daily. 50% Feebas even on the right tile.', 'Platinum', 'Worst grind — need 2')
 m(133, 'Gift', 'Bebe in Hearthome City gives one Eevee (Lv20). For the other 7, use Trophy Garden Eevee or breed with Ditto.', 'Platinum', 'Need 8 total')
-m(137, 'Gift', 'Man inside the Veilstone Pokémon Center, after the National Dex (Lv25). One only — breed with Ditto for copies.', 'Platinum', 'One-time gift — breed copies')
+m(137, 'Gift', 'A man in a house in northeast Veilstone City gives one Porygon (Lv25) — no requirements. One only — breed with Ditto for copies.', 'Platinum', 'One-time gift — breed copies')
 m(175, 'Gift', 'Cynthia gives a Togepi egg in Eterna City (after Team Galactic\'s building). Copies: Poké Radar Route 230, or breed.', 'Platinum', 'One-time egg — breed copies')
 m(447, 'Gift', 'Riley gives a Riolu egg after you clear Iron Island. One only — evolve it, then breed Lucario for a second Riolu.', 'Platinum', 'One-time egg — breed copies')
 m(94, 'Dual-slot', 'Old Chateau 2F (the room with eyes on the walls) with ANY Gen 3 cart in the GBA slot. Far easier than trading a Haunter.', 'Any Gen 3 cart in GBA slot', 'DS/DS Lite + any GBA cart')

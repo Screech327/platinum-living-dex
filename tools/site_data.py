@@ -11,7 +11,7 @@ R = build()
 TIERS = ['Story', 'Story · Good Rod', 'Story · Surf', 'Victory Road (8 badges)', 'After Hall of Fame', 'After National Dex', 'Other game', 'Event only']
 POST_HOF = {'Route 224', 'Route 225', 'Route 227', 'Route 228', 'Route 229', 'Sea Route 226', 'Sea Route 230', 'Resort Area', 'Stark Mountain',
             'Turnback Cave', 'Sendoff Spring', 'Snowpoint Temple', 'Flower Paradise', 'Newmoon Island', 'Hall of Origin'}
-NATDEX = {'Trophy Garden'}
+NATDEX = set()  # Trophy Garden itself is open during the story; only Mr. Backlot's daily Pokémon need the National Dex
 VICTORY = {'Victory Road'}
 def loc_rank(loc):
     if loc in NATDEX: return 5
@@ -23,7 +23,7 @@ def method_rank(m):
 
 def entry_rank(e):
     r = max(loc_rank(e['loc']), method_rank(e['method']))
-    if 'story-progress-national-dex' in e['extra']: r = max(r, 5)
+    if 'story-progress-national-dex' in e['extra'] or e.get('post'): r = max(r, 5)
     sp = e['special']
     if sp in ('radar-on', 'swarm-yes') or sp.startswith('slot2-') or sp == 'backlot-mentioned': r = max(r, 5)
     if sp == 'swarm-yes': r = max(r, 5)
@@ -78,9 +78,9 @@ STEPS = {
     442: ['Platinum: get the Odd Keystone (Route 208 trainer gift, or dig in the Underground).', 'Put it in the Hallowed Tower on Route 209.', 'Talk to 32 people in the Underground (leave and re-enter to talk to the same people again), then check the tower: Spiritomb Lv25.'],
     425: ['Platinum: clear Team Galactic from the Valley Windworks (story).', 'On a FRIDAY, a Drifloon appears by the gate (Lv15). One per week; breed Drifblim for extras.'],
     479: ['Platinum: Old Chateau (Eterna Forest, needs Cut).', 'At NIGHT, check the TV in the 2nd-floor left room: Rotom Lv20.'],
-    349: ['Platinum: Good Rod or better.', 'Mt. Coronet B1F lake room (the big room reached from Route 211 West).', 'Only 4 hidden water tiles hold Feebas and they change every day. 50% Feebas even on the right tile.', 'Milotic: feed Feebas dry (blue) Poffins until its Beauty maxes, then level it up.'],
+    349: ['Platinum: any fishing rod works, even the Old Rod.', 'Mt. Coronet B1F lake room (the big room reached from Route 211 West).', 'Only 4 hidden water tiles hold Feebas and they change every day. 50% Feebas even on the right tile.', 'Milotic: feed Feebas dry (blue) Poffins until its Beauty maxes, then level it up.'],
     133: ['Platinum: Bebe in Hearthome City gives you one Eevee (Lv20) — story.', 'For the other 7: Trophy Garden Eevee (after National Dex) or breed with Ditto.'],
-    137: ['Platinum: get the National Dex.', 'Talk to the man inside the Veilstone City Pokémon Center: Porygon Lv25. One only — breed copies with Ditto.', 'Up-Grade: Prof. Oak gives it in Eterna City.'],
+    137: ['Platinum: reach Veilstone City (story).', 'Talk to the man in the house in the northeast of Veilstone City: Porygon Lv25. One only — breed copies with Ditto.', 'Up-Grade (for Porygon2): item ball on 4F of the Team Galactic Eterna Building (story), or from Prof. Oak in Eterna City after the National Dex.'],
     175: ['Platinum: story — Cynthia gives you a Togepi egg in Eterna City.', 'Extra copies: Poké Radar on Sea Route 230 (post-game) or breed.'],
     447: ['Platinum: story — clear Iron Island with Riley and he gives you a Riolu egg.', 'Evolve it (friendship, daytime), then breed Lucario for the second Riolu.'],
     446: ['Get Snorlax from HG/SS or FireRed/LeafGreen (see Snorlax).', 'Pick up the Full Incense in Veilstone City (Platinum).', 'Day-Care: Snorlax holding Full Incense + Ditto → egg hatches Munchlax.', 'Honey trees work too, but only 4 hidden trees and about 1% — not worth it.'],
@@ -127,7 +127,7 @@ for i in range(1, 494):
     if rank is None:
         rank = {'EVENT': 7, 'Other cart': 6, 'Version exclusive': 6}.get(cat)
     if rank is None:
-        rank = {137: 5, 138: 5, 140: 5, 142: 5, 345: 5, 347: 5, 144: 5, 145: 5, 146: 5, 483: 5, 484: 5, 488: 5, 485: 4, 480: 4, 481: 4, 482: 4,
+        rank = {137: 0, 138: 5, 140: 5, 142: 5, 345: 5, 347: 5, 144: 5, 145: 5, 146: 5, 483: 5, 484: 5, 488: 5, 485: 4, 480: 4, 481: 4, 482: 4,
                 486: 6, 487: 0, 442: 0, 425: 0, 479: 0, 349: 1, 133: 0, 175: 0, 447: 0, 408: 0, 410: 0, 387: 0, 390: 0, 393: 0, 94: 5,
                 86: 3, 165: 4, 167: 4, 239: 2, 240: 2, 276: 5, 293: 5, 353: 4, 363: 4, 360: 5, 446: 6}.get(i)
     if rank is None:

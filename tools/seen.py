@@ -32,6 +32,7 @@ def pretty_map(m):
                'route_222_west_house': 'Route 222 house', 'pokemon_league_north_pokecenter_1f': 'Pokémon League (north)',
                'pokemon_league_champion_room': 'Pokémon League — Champion', 'lake_valor_drained': 'Lake Valor', 'fuego_ironworks_building': 'Fuego Ironworks'}
     if m in special: return special[m]
+    if m.startswith('victory_road_1f_room'): return 'Victory Road back section'
     mm = re.match(r'pokemon_league_(\w+)_room', m)
     if mm: return f'Pokémon League — Elite Four {mm.group(1).title()}'
     mm = re.match(r'(\w+?)_city_gym', m)
@@ -75,7 +76,7 @@ for key, maps in trmap.items():
         sp = p['species'].replace('SPECIES_', '')
         sid = SPC.get(sp)
         if sid is None: print('?', sp); continue
-        seen[sid].append(dict(o=order_of(m), map=pretty_map(m), area=area(m), who=trainer_label(key, d), lv=p['level'], post=area(m) in POST))
+        seen[sid].append(dict(o=order_of(m), map=pretty_map(m), area=area(m), who=trainer_label(key, d), lv=p['level'], post=area(m) in POST or m.startswith('victory_road_1f_room')))
 
 out = {}
 for s in sinnoh:

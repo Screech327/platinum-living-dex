@@ -27,5 +27,5 @@ for e in rd('encounters.csv'):
     m = methods[s['encounter_method_id']]
     conds = [c for c in cmap.get(e['id'], []) if c not in ('swarm-no', 'radar-off', 'slot2-none', 'radio-off', 'story-progress-none', 'other-none', 'item-none')]
     out[int(e['pokemon_id'])][VERS[v]].append((place(e['location_area_id']), m, int(s['rarity'] or 0), int(e['min_level']), int(e['max_level']), tuple(sorted(conds))))
-json.dump({k: {v: l for v, l in d.items()} for k, d in out.items()}, open('/home/claude/work/enc.json', 'w'))
+json.dump({k: {v: l for v, l in d.items()} for k, d in out.items()}, open('/home/claude/work/enc_pokeapi.json', 'w'))
 print(len(out))

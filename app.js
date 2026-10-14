@@ -670,6 +670,105 @@ function initSync() {
   setInterval(() => { if (!document.hidden) syncNow(); else renderSync(); }, 45000);
 }
 
+
+/* ---------------- MAP view ---------------- */
+const MAP = new Map((window.MAPDATA || []).map(([loc, subs]) => [loc, subs]));
+const MAPNOTE = new Map((window.MAPDATA || []).map(([loc, , note]) => [loc, note || '']));
+// schematic layout of Sinnoh (viewBox 122 x 76). Routes are polylines; towns/places are points.
+const ROUTES = [
+  ['Route 201', [[8,62],[18,62]]], ['Route 202', [[18,62],[18,48]]], ['Route 203', [[18,48],[32,48]]], ['Route 204', [[18,48],[18,34]]],
+  ['Route 205', [[18,34],[26,34],[26,27],[22,24],[24,20]]], ['Route 206', [[24,20],[29,23],[29,40]]], ['Route 207', [[32,48],[32,40],[38,40]]],
+  ['Route 208', [[42,44],[50,44]]], ['Route 209', [[50,44],[59,44],[60,34]]], ['Route 210', [[60,34],[60,22],[52,20]]], ['Route 211', [[24,20],[38,20]], [[42,20],[52,20]]],
+  ['Route 212', [[50,44],[50,54],[56,58],[62,58]]], ['Route 213', [[62,58],[78,58],[78,47]]], ['Route 214', [[76,28],[77,38],[78,45]]], ['Route 215', [[60,25],[76,28]]],
+  ['Route 216', [[38,15],[30,15]]], ['Route 217', [[30,15],[30,9]]], ['Route 218', [[18,48],[4,48]], 'sea'], ['Route 219', [[18,62],[18,70]], 'sea'],
+  ['Sea Route 220', [[18,70],[32,70]], 'sea'], ['Route 221', [[32,70],[44,70]]], ['Route 222', [[78,46],[94,56]]], ['Sea Route 223', [[94,56],[94,33]], 'sea'],
+  ['Route 224', [[96,24],[106,26]]], ['Route 225', [[96,10],[102,4]]], ['Sea Route 226', [[104,4],[116,4]], 'sea'], ['Route 227', [[116,4],[116,12]]],
+  ['Route 228', [[104,5],[106,15]]], ['Route 229', [[106,15],[112,20]]], ['Sea Route 230', [[114,22],[98,12]], 'sea'],
+];
+const TOWNS = [['Twinleaf Town',8,62],['Sandgem Town',18,62],['Jubilife City',18,48],['Canalave City',4,48],['Oreburgh City',32,48],['Floaroma Town',18,34],
+  ['Eterna City',24,20],['Hearthome City',50,44],['Solaceon Town',60,34],['Veilstone City',76,28],['Pastoria City',62,58],['Celestic Town',52,20],
+  ['Snowpoint City',36,6],['Sunyshore City',94,56],['Pokémon League',94,24],['Fight Area',96,10],['Survival Area',104,4],['Resort Area',114,22],['Pal Park',46,70]];
+const PLACES = [['Lake Verity',3,58,'lake'],['Lake Valor',86,47,'lake'],['Lake Acuity',24,6,'lake'],['Valor Lakefront',78,46,''],['Acuity Lakefront',31,9,''],
+  ['Iron Island',2,40,'cave'],['Newmoon Island',4,33,''],['Fuego Ironworks',10,31,''],['Valley Windworks',26,34,''],['Eterna Forest',20,26,''],['Floaroma Meadow',13,35,''],['Old Chateau',16,23,''],
+  ['Ravaged Path',18,41,'cave'],['Oreburgh Gate',25,48,'cave'],['Oreburgh Mine',32,52,'cave'],['Wayward Cave',27,31,'cave'],['Lost Tower',55,44,''],
+  ['Solaceon Ruins',64,32,'cave'],['Maniac Tunnel',68,35,'cave'],['Ruin Maniac Cave',72,37,'cave'],['Great Marsh',62,63,''],['Trophy Garden',54,55,''],
+  ['Sendoff Spring',88,40,''],['Turnback Cave',92,37,'cave'],['Victory Road',94,30,'cave'],['Snowpoint Temple',40,2,'cave'],['Spear Pillar',40,9,''],
+  ['Hall of Origin',44,9,''],['Distortion World',36,9,''],['Stark Mountain',117,14,'cave'],['Flower Paradise',108,28,'']];
+let mapLoc = null, mapSub = 0;
+const curTime = () => { const h = new Date().getHours(); return h >= 4 && h < 10 ? 0 : h >= 10 && h < 20 ? 1 : 2; };
+let mapTime = curTime();
+const SVGNS = 'http://www.w3.org/2000/svg';
+const sv = (tag, attrs = {}, ...kids) => { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); kids.forEach(k => e.append(k)); return e; };
+function buildMap() {
+  const svg = $('#mapSvg');
+  svg.append(sv('rect', { x: 0, y: 0, width: 122, height: 76, class: 'sea' }));
+  svg.append(sv('path', { class: 'land', d: 'M1 50 Q0 30 6 22 L14 10 Q22 0 44 1 L64 3 Q80 2 88 14 L98 22 Q100 40 98 52 L96 62 Q80 66 66 66 L52 68 Q34 66 24 66 L10 66 Q2 64 1 50 Z' }));
+  svg.append(sv('path', { class: 'land', d: 'M92 2 L118 1 Q121 10 119 24 L106 30 Q98 30 96 22 Z' }));
+  svg.append(sv('path', { class: 'land', d: 'M28 72 L46 72 L46 67 L30 67 Z' }));
+  const gMtn = sv('g', { tabindex: 0, 'data-loc': 'Mt. Coronet' }, sv('rect', { x: 38, y: 11, width: 4.6, height: 36, rx: 1.4, class: 'mtn' }), sv('text', { x: 40.3, y: 30, class: 'lbl', transform: 'rotate(-90 40.3 30)', 'text-anchor': 'middle' }, 'Mt. Coronet'));
+  const layer = sv('g');
+  for (const [name, ...parts] of ROUTES) {
+    const sea = parts[parts.length - 1] === 'sea'; const segs = parts.filter(p => Array.isArray(p) && Array.isArray(p[0]));
+    const g = sv('g', { tabindex: 0, 'data-loc': name, class: MAP.has(name) ? '' : 'nodata' });
+    for (const seg of segs) { const pts = seg.map(p => p.join(',')).join(' '); g.append(sv('polyline', { points: pts, class: 'rt' + (sea ? ' seart' : '') }), sv('polyline', { points: pts, class: 'hit' })); }
+    const s0 = segs[0], mid = s0[Math.floor((s0.length - 1) / 2)], nxt = s0[Math.min(s0.length - 1, Math.floor((s0.length - 1) / 2) + 1)];
+    const LP = { 'Route 219': [16.6, 68, 'end'], 'Route 209': [61.4, 41.5, 'start'], 'Route 205': [22.4, 27.8, 'end'], 'Route 212': [48.6, 52.6, 'end'],
+      'Route 217': [28.6, 12.2, 'end'], 'Route 206': [30.4, 33.6, 'start'] }[name];
+    g.append(sv('text', LP ? { x: LP[0], y: LP[1], class: 'rlbl', 'text-anchor': LP[2] } : { x: (mid[0] + nxt[0]) / 2, y: (mid[1] + nxt[1]) / 2 - 0.9, class: 'rlbl', 'text-anchor': 'middle' }, name.replace(/^(Sea )?Route /, '')));
+    g.append(sv('title', {}, name)); layer.append(g);
+  }
+  svg.append(layer, gMtn);
+  for (const [name, x, y, kind] of PLACES) {
+    const g = sv('g', { tabindex: 0, 'data-loc': name, class: MAP.has(name) ? '' : 'nodata' }, sv('circle', { cx: x, cy: y, r: 1.25, class: 'place ' + (kind || '') }), sv('title', {}, name));
+    svg.append(g);
+  }
+  for (const [name, x, y] of TOWNS) {
+    const g = sv('g', { tabindex: 0, 'data-loc': name, class: MAP.has(name) ? '' : 'nodata' }, sv('rect', { x: x - 2.2, y: y - 1.5, width: 4.4, height: 3, rx: .6, class: 'town' }),
+      sv('text', { x, y: y + 3.6, class: 'lbl', 'text-anchor': 'middle' }, name.replace(/ (Town|City)$/, '')), sv('title', {}, name));
+    svg.append(g);
+  }
+  svg.addEventListener('click', e => { const g = e.target.closest('g[data-loc]'); if (g) pickLoc(g.dataset.loc); });
+  svg.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const g = e.target.closest('g[data-loc]'); if (g) { e.preventDefault(); pickLoc(g.dataset.loc); } } });
+  const names = [...new Set([...TOWNS.map(t => t[0]), ...PLACES.map(p => p[0]), ...ROUTES.map(r => r[0]), 'Mt. Coronet', ...MAP.keys()])]
+    .sort((a, b) => { const ra = a.match(/Route (\d+)/), rb = b.match(/Route (\d+)/); if (ra && rb) return ra[1] - rb[1]; if (ra) return -1; if (rb) return 1; return a.localeCompare(b); });
+  names.forEach(n => $('#mapPick').append(new Option(n + (MAP.has(n) ? '' : ' (no wild Pokémon)'), n)));
+  $('#mapPick').addEventListener('change', e => { if (e.target.value) pickLoc(e.target.value); });
+  $$('[data-time]').forEach(b => b.addEventListener('click', () => { mapTime = +b.dataset.time; renderMapPanel(); }));
+}
+function pickLoc(name) { mapLoc = name; mapSub = 0; $('#mapPick').value = name; renderMap(); if (innerWidth <= 860) $('#mapPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function renderMap() { $$('#mapSvg g[data-loc]').forEach(g => g.classList.toggle('on', g.dataset.loc === mapLoc)); renderMapPanel(); }
+const POSTGAME_LOCS = new Set(['Route 224', 'Route 225', 'Sea Route 226', 'Route 227', 'Route 228', 'Route 229', 'Sea Route 230', 'Resort Area', 'Stark Mountain', 'Fight Area', 'Survival Area', 'Turnback Cave', 'Sendoff Spring', 'Snowpoint Temple', 'Flower Paradise', 'Newmoon Island', 'Hall of Origin']);
+function renderMapPanel() {
+  $$('[data-time]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.time === mapTime));
+  const P = $('#mapPanel');
+  if (!mapLoc) return;
+  const subs = MAP.get(mapLoc);
+  const head = [el('h3', { text: mapLoc }), el('div', { class: 'chips' }, POSTGAME_LOCS.has(mapLoc) ? chip('After Hall of Fame', 'tier4') : null, mapLoc === 'Victory Road' ? chip('8 badges', 'tier3') : null)];
+  if (MAPNOTE.get(mapLoc)) head.push(el('p', { class: 'sub mapnote', text: MAPNOTE.get(mapLoc) }));
+  if (!subs) { P.replaceChildren(...head, el('p', { class: 'sub', text: 'No wild Pokémon here.' })); return; }
+  const subBtns = subs.length > 1 ? el('div', { class: 'subs' }, subs.map(([sub], i) => el('button', { type: 'button', 'aria-pressed': String(i === mapSub), text: sub || 'Main area', onclick: () => { mapSub = i; renderMapPanel(); } }))) : null;
+  const [, secs] = subs[Math.min(mapSub, subs.length - 1)];
+  const TL = ['Morning', 'Day', 'Night'];
+  const ONE = new Set(['Gift', 'Egg gift', 'One-time encounter', 'In-game trade']);
+  const monCell = (id, note) => el('td', {}, el('div', { class: 'mon', onclick: () => openDrawer(id), title: 'Open details' }, img(id), el('span', { class: 'mn' }, BY.get(id).n, note ? el('small', { text: note }) : null)));
+  const lvText = (lo, hi) => !lo ? '—' : lo === hi ? lo : `${lo}–${hi}`;
+  const tables = secs.map(([sec, rows]) => {
+    if (ONE.has(sec)) return el('table', { class: 'enc' }, el('caption', { text: sec }),
+      el('thead', {}, el('tr', {}, el('th', { text: 'Pokémon' }), el('th', { text: 'Lv' }))),
+      el('tbody', {}, rows.map(([id, , , , lo, hi, note]) => el('tr', { class: isGot(id) ? 'got' : '' }, monCell(id, note), el('td', { class: 'r', text: lvText(lo, hi) })))));
+    const vary = rows.some(r => r[1] !== r[2] || r[2] !== r[3]);
+    return el('table', { class: 'enc' }, el('caption', { text: sec }),
+      el('thead', {}, el('tr', {}, el('th', { text: 'Pokémon' }), ...(vary ? TL.map((t, i) => el('th', { class: i === mapTime ? 'now' : '', text: t.slice(0, 3) })) : [el('th', { text: 'Rate' })]), el('th', { text: 'Lv' }))),
+      el('tbody', {}, rows.map(([id, m, d, n, lo, hi, note]) => {
+        const rates = [m, d, n];
+        return el('tr', { class: (isGot(id) ? 'got ' : '') + (vary && rates[mapTime] === 0 ? 'dim' : '') }, monCell(id, note),
+          ...(vary ? rates.map((r, i) => el('td', { class: 'r' + (i === mapTime ? ' now' : '') + (r === 0 ? ' zero' : ''), text: r ? r + '%' : '—' })) : [el('td', { class: 'r', text: m + '%' })]),
+          el('td', { class: 'r', text: lvText(lo, hi) }));
+      })));
+  });
+  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dual-slot rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' }));
+}
+
 /* ---------------- drawer ---------------- */
 let drawerId = null, lastFocus = null;
 function whereList(text) {
@@ -731,7 +830,7 @@ function closeDrawer() {
 
 /* ---------------- views + refresh ---------------- */
 let view = 'dex';
-const RENDER = { sinnoh: renderSin, dex: renderGrid, boxes: renderBoxes, plan: renderPlan, today: renderToday, dupes: renderDupes, more: badges };
+const RENDER = { sinnoh: renderSin, dex: renderGrid, boxes: renderBoxes, map: renderMap, plan: renderPlan, today: renderToday, dupes: renderDupes, more: badges };
 function setView(v) {
   view = v;
   $$('.view').forEach(s => s.hidden = s.id !== 'view-' + v);
@@ -743,7 +842,7 @@ function setView(v) {
 function refresh() { header(); RENDER[view](); }
 
 function init() {
-  load(); buildSin(); buildGrid(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore(); initStream(); initSync();
+  load(); buildSin(); buildGrid(); buildMap(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore(); initStream(); initSync();
   $$('[data-view]').forEach(b => b.addEventListener('click', () => { setView(b.dataset.view); scrollTo({ top: 0 }); }));
   $('#scrim').addEventListener('click', closeDrawer);
   addEventListener('keydown', e => { if (e.key === 'Escape' && drawerId) closeDrawer(); });
