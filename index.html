@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20261008160301">
+<link rel="stylesheet" href="styles.css?v=20261014141658">
 </head>
 <body>
 <div class="app">
@@ -87,6 +87,13 @@
 
     <!-- BOXES -->
     <section id="view-boxes" class="view" hidden>
+      <div class="boxsearch">
+        <div class="search">
+          <input id="bq" type="search" autocomplete="off" placeholder="Find a Pokémon's box — name or number…" aria-label="Find a Pokémon's box">
+          <button type="button" class="ghost" id="bqClear">Clear</button>
+        </div>
+        <div class="bhits" id="bHits"></div>
+      </div>
       <div class="boxnav">
         <button type="button" class="ghost" id="boxPrev" aria-label="Previous box">◀</button>
         <div class="boxtitle"><b id="boxName">Box 1</b><span id="boxRange"></span></div>
@@ -203,7 +210,7 @@
 <div class="toast" id="toast" role="status"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
-<script src="data.js?v=20261008160301"></script>
-<script src="app.js?v=20261008160301"></script>
+<script src="data.js?v=20261014141658"></script>
+<script src="app.js?v=20261014141658"></script>
 </body>
 </html>

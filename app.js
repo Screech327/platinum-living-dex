@@ -192,7 +192,7 @@ function initFilters() {
 }
 
 /* ---------------- BOXES view ---------------- */
-let box = 1;
+let box = 1, boxHit = null;
 function renderBoxes() {
   const start = (box - 1) * 30 + 1, end = Math.min(box * 30, 493);
   $('#boxName').textContent = 'Box ' + box;
@@ -202,7 +202,7 @@ function renderBoxes() {
   for (let i = start; i < start + 30; i++) {
     if (i > 493) { pc.append(el('div', { class: 'slot blank' })); continue; }
     const d = BY.get(i);
-    pc.append(el('button', { type: 'button', class: 'slot' + (isGot(i) ? ' got' : ''), title: `#${pad(i)} ${d.n}`, 'aria-label': `#${pad(i)} ${d.n}${isGot(i) ? ', boxed' : ''}`, onclick: () => openDrawer(i) },
+    pc.append(el('button', { type: 'button', class: 'slot' + (isGot(i) ? ' got' : '') + (i === boxHit ? ' hit' : ''), title: `#${pad(i)} ${d.n}`, 'aria-label': `#${pad(i)} ${d.n}${isGot(i) ? ', boxed' : ''}`, onclick: () => openDrawer(i) },
       el('span', { class: 'sn', text: pad(i) }), img(i)));
   }
   const dots = $('#boxDots'); dots.replaceChildren();
@@ -212,7 +212,25 @@ function renderBoxes() {
     dots.append(el('button', { type: 'button', class: full ? 'full' : '', 'aria-current': b === box ? 'true' : 'false', 'aria-label': 'Box ' + b, text: b, onclick: () => { box = b; renderBoxes(); } }));
   }
 }
+function goToSlot(id) {
+  box = Math.ceil(id / 30); boxHit = id; renderBoxes();
+  const d = BY.get(id); toast(`${d.n}: Box ${box}, slot ${(id - 1) % 30 + 1}${isGot(id) ? ' — caught' : ''}`);
+  clearTimeout(goToSlot.t); goToSlot.t = setTimeout(() => { boxHit = null; $$('.slot.hit').forEach(x => x.classList.remove('hit')); }, 6000);
+}
+function boxSearch() {
+  const raw = $('#bq').value.trim(), q = norm(raw), hits = $('#bHits');
+  if (!q) { hits.replaceChildren(); return []; }
+  let res;
+  if (/^#?\d+$/.test(q)) { const n = +q.replace('#', ''); res = DEX.filter(d => d.id === n); }
+  else res = DEX.filter(d => d.key.startsWith(q)).concat(DEX.filter(d => !d.key.startsWith(q) && d.key.includes(q))).slice(0, 8);
+  hits.replaceChildren(...(res.length ? res.map(d => el('button', { type: 'button', class: 'bhit' + (isGot(d.id) ? ' got' : ''), onclick: () => goToSlot(d.id) },
+    img(d.id), el('span', {}, d.n, ' ', el('span', { class: 'bs', text: `Box ${Math.ceil(d.id / 30)} · slot ${(d.id - 1) % 30 + 1}` })))) : [el('span', { class: 'sub', style: 'margin:0', text: 'No Pokémon match that.' })]));
+  return res;
+}
 function initBoxes() {
+  $('#bq').addEventListener('input', () => { const r = boxSearch(); if (r.length === 1) goToSlot(r[0].id); });
+  $('#bq').addEventListener('keydown', e => { if (e.key === 'Enter') { const r = boxSearch(); if (r.length) goToSlot(r[0].id); } });
+  $('#bqClear').addEventListener('click', () => { $('#bq').value = ''; boxSearch(); $('#bq').focus(); });
   $('#boxPrev').addEventListener('click', () => { box = box === 1 ? 17 : box - 1; renderBoxes(); });
   $('#boxNext').addEventListener('click', () => { box = box === 17 ? 1 : box + 1; renderBoxes(); });
   let sx = null;
