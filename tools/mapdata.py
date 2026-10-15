@@ -67,7 +67,7 @@ SEC = {'gift': 'Gift', 'gift-egg': 'Egg gift', 'static': 'One-time encounter', '
 NOTE = {(133, 'gift'): 'from Bebe', (137, 'gift'): 'from a man in Veilstone', (175, 'gift-egg'): 'egg from Cynthia', (447, 'gift-egg'): 'egg from Riley',
         (387, 'gift'): 'starter', (390, 'gift'): 'starter', (393, 'gift'): 'starter', (442, 'static'): 'Hallowed Tower + Odd Keystone',
         (425, 'static'): 'Fridays, after the Galactic event', (479, 'static'): 'TV in the back room', (486, 'static'): 'needs Regirock, Regice, Registeel in party',
-        (487, 'static'): '', (63, 'npc-trade'): 'trade a Machop', (441, 'npc-trade'): 'trade a Buizel', (129, 'npc-trade'): 'trade a Finneon', (93, 'npc-trade'): 'trade a Medicham', (483, 'static'): 'after Hall of Fame, Adamant Orb', (484, 'static'): 'after Hall of Fame, Lustrous Orb'}
+        (487, 'static'): '', (493, 'static'): 'needs the Azure Flute (event item)', (491, 'static'): 'needs the Member Card (event item)', (492, 'static'): "needs Oak's Letter (event item)", (63, 'npc-trade'): 'trade a Machop', (441, 'npc-trade'): 'trade a Buizel', (129, 'npc-trade'): 'trade a Finneon', (93, 'npc-trade'): 'trade a Medicham', (483, 'static'): 'after Hall of Fame, Adamant Orb', (484, 'static'): 'after Hall of Fame, Lustrous Orb'}
 for loc_name in ('Oreburgh City',):
     pass
 extra = collections.defaultdict(lambda: collections.defaultdict(dict))

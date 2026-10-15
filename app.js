@@ -698,7 +698,7 @@ const PLACES = [['Lake Verity',62,540,20,''],['Lake Valor',577,482,19,''],['Lake
   ['Old Chateau',205,262,7,'spot'],['Ravaged Path',166,430,7,'cave'],['Oreburgh Gate',188,470,7,'cave'],['Oreburgh Mine',240,522,7,'cave'],['Wayward Cave',236,404,7,'cave'],
   ['Lost Tower',440,428,7,'spot'],['Solaceon Ruins',508,406,7,'cave'],['Ruin Maniac Cave',574,402,7,'cave'],['Maniac Tunnel',574,422,7,'cave'],
   ['Valor Lakefront',612,468,7,'spot'],['Turnback Cave',654,420,7,'cave'],['Great Marsh',452,520,8,'spot'],['Trophy Garden',406,480,7,'spot'],
-  ['Spear Pillar',316,222,7,'spot'],['Snowpoint Temple',334,40,7,'cave'],['Stark Mountain',621,44,8,'cave'],['Flower Paradise',762,246,7,'spot'],['Pal Park',268,588,7,'spot']];
+  ['Hall of Origin',316,202,7,'spot'],['Spear Pillar',316,222,7,'spot'],['Distortion World',316,242,7,'spot'],['Snowpoint Temple',334,40,7,'cave'],['Stark Mountain',621,44,8,'cave'],['Flower Paradise',762,246,7,'spot'],['Pal Park',268,588,7,'spot']];
 let mapLoc = null, mapSub = 0;
 const curTime = () => { const h = new Date().getHours(); return h >= 4 && h < 10 ? 0 : h >= 10 && h < 20 ? 1 : 2; };
 let mapTime = curTime();
