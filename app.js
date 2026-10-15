@@ -674,26 +674,31 @@ function initSync() {
 /* ---------------- MAP view ---------------- */
 const MAP = new Map((window.MAPDATA || []).map(([loc, subs]) => [loc, subs]));
 const MAPNOTE = new Map((window.MAPDATA || []).map(([loc, , note]) => [loc, note || '']));
-// schematic layout of Sinnoh (viewBox 122 x 76). Routes are polylines; towns/places are points.
+// hotspots over Sam's Town Map screenshot (townmap.png, 808 x 626 px). Routes are polylines; towns are rects; extra places are dots.
+const TM_W = 808, TM_H = 626;
 const ROUTES = [
-  ['Route 201', [[8,62],[18,62]]], ['Route 202', [[18,62],[18,48]]], ['Route 203', [[18,48],[32,48]]], ['Route 204', [[18,48],[18,34]]],
-  ['Route 205', [[18,34],[26,34],[26,27],[22,24],[24,20]]], ['Route 206', [[24,20],[29,23],[29,40]]], ['Route 207', [[32,48],[32,40],[38,40]]],
-  ['Route 208', [[42,44],[50,44]]], ['Route 209', [[50,44],[59,44],[60,34]]], ['Route 210', [[60,34],[60,22],[52,20]]], ['Route 211', [[24,20],[38,20]], [[42,20],[52,20]]],
-  ['Route 212', [[50,44],[50,54],[56,58],[62,58]]], ['Route 213', [[62,58],[78,58],[78,47]]], ['Route 214', [[76,28],[77,38],[78,45]]], ['Route 215', [[60,25],[76,28]]],
-  ['Route 216', [[38,15],[30,15]]], ['Route 217', [[30,15],[30,9]]], ['Route 218', [[18,48],[4,48]], 'sea'], ['Route 219', [[18,62],[18,70]], 'sea'],
-  ['Sea Route 220', [[18,70],[32,70]], 'sea'], ['Route 221', [[32,70],[44,70]]], ['Route 222', [[78,46],[94,56]]], ['Sea Route 223', [[94,56],[94,33]], 'sea'],
-  ['Route 224', [[96,24],[106,26]]], ['Route 225', [[96,10],[102,4]]], ['Sea Route 226', [[104,4],[116,4]], 'sea'], ['Route 227', [[116,4],[116,12]]],
-  ['Route 228', [[104,5],[106,15]]], ['Route 229', [[106,15],[112,20]]], ['Sea Route 230', [[114,22],[98,12]], 'sea'],
+  ['Route 201', [[82,548],[136,548]]], ['Route 202', [[148,510],[148,538]]], ['Route 203', [[160,470],[215,470]]], ['Route 204', [[148,405],[148,458]]],
+  ['Route 205', [[148,352],[148,288],[166,286]], [[162,388],[196,388]]], ['Route 206', [[252,324],[252,444]]], ['Route 207', [[252,458],[252,444],[300,444]]],
+  ['Route 208', [[340,444],[372,444]]], ['Route 209', [[422,444],[462,444],[462,402]]], ['Route 210', [[398,286],[462,286],[462,380]]],
+  ['Route 211', [[292,286],[324,286]], [[340,286],[373,286]]], ['Route 212', [[387,456],[387,542],[478,542]]], ['Route 213', [[528,535],[590,535],[590,505]]],
+  ['Route 214', [[592,376],[592,458]]], ['Route 215', [[470,338],[556,338]]], ['Route 216', [[332,180],[262,180]]], ['Route 217', [[254,175],[254,68]]],
+  ['Route 218', [[56,470],[110,470]]], ['Route 219', [[148,562],[148,588]]], ['Sea Route 220', [[148,588],[205,588]]], ['Route 221', [[205,588],[258,588]]],
+  ['Route 222', [[606,485],[688,485]]], ['Sea Route 223', [[700,346],[700,458]]], ['Route 224', [[712,302],[748,288],[748,256]]],
+  ['Route 225', [[515,196],[515,142]]], ['Sea Route 226', [[555,128],[650,128]]], ['Route 227', [[621,118],[621,56]]], ['Route 228', [[650,138],[650,198]]],
+  ['Route 229', [[650,208],[662,208]]], ['Sea Route 230', [[556,208],[640,208]]], ['Acuity Lakefront', [[254,58],[254,22],[288,22]]],
+  ['Eterna Forest', [[168,286],[240,286]]], ['Mt. Coronet', [[332,192],[332,272]], [[300,300],[300,436]], [[340,300],[340,436]]],
 ];
-const TOWNS = [['Twinleaf Town',8,62],['Sandgem Town',18,62],['Jubilife City',18,48],['Canalave City',4,48],['Oreburgh City',32,48],['Floaroma Town',18,34],
-  ['Eterna City',24,20],['Hearthome City',50,44],['Solaceon Town',60,34],['Veilstone City',76,28],['Pastoria City',62,58],['Celestic Town',52,20],
-  ['Snowpoint City',36,6],['Sunyshore City',94,56],['Pokémon League',94,24],['Fight Area',96,10],['Survival Area',104,4],['Resort Area',114,22],['Pal Park',46,70]];
-const PLACES = [['Lake Verity',3,58,'lake'],['Lake Valor',86,47,'lake'],['Lake Acuity',24,6,'lake'],['Valor Lakefront',78,46,''],['Acuity Lakefront',31,9,''],
-  ['Iron Island',2,40,'cave'],['Newmoon Island',4,33,''],['Fuego Ironworks',10,31,''],['Valley Windworks',26,34,''],['Eterna Forest',20,26,''],['Floaroma Meadow',13,35,''],['Old Chateau',16,23,''],
-  ['Ravaged Path',18,41,'cave'],['Oreburgh Gate',25,48,'cave'],['Oreburgh Mine',32,52,'cave'],['Wayward Cave',27,31,'cave'],['Lost Tower',55,44,''],
-  ['Solaceon Ruins',64,32,'cave'],['Maniac Tunnel',68,35,'cave'],['Ruin Maniac Cave',72,37,'cave'],['Great Marsh',62,63,''],['Trophy Garden',54,55,''],
-  ['Sendoff Spring',88,40,''],['Turnback Cave',92,37,'cave'],['Victory Road',94,30,'cave'],['Snowpoint Temple',40,2,'cave'],['Spear Pillar',40,9,''],
-  ['Hall of Origin',44,9,''],['Distortion World',36,9,''],['Stark Mountain',117,14,'cave'],['Flower Paradise',108,28,'']];
+const TOWNS = [['Snowpoint City',293,10,26,52],['Eterna City',242,272,50,50],['Celestic Town',373,276,25,25],['Veilstone City',556,326,50,50],['Hearthome City',372,405,50,50],
+  ['Solaceon Town',450,380,48,22],['Pastoria City',478,510,50,50],['Sunyshore City',688,458,50,50],['Pokémon League',688,300,24,22],['Victory Road',688,328,24,17],
+  ['Jubilife City',110,458,50,50],['Oreburgh City',215,458,50,50],['Canalave City',32,432,24,50],['Floaroma Town',135,352,25,52],['Sandgem Town',135,538,25,24],
+  ['Twinleaf Town',85,562,23,24],['Survival Area',528,116,27,26],['Fight Area',503,196,52,24],['Resort Area',660,222,26,24],['Sendoff Spring',606,402,40,36]];
+// [name, x, y, r, kind]: kind '' = on the map art already (invisible hotspot), otherwise a small marker is drawn
+const PLACES = [['Lake Verity',62,540,20,''],['Lake Valor',577,482,19,''],['Lake Acuity',262,42,17,''],['Iron Island',96,262,15,''],
+  ['Newmoon Island',125,173,9,''],['Valley Windworks',206,388,7,'spot'],['Floaroma Meadow',166,346,7,'spot'],['Fuego Ironworks',116,388,7,'spot'],
+  ['Old Chateau',205,262,7,'spot'],['Ravaged Path',166,430,7,'cave'],['Oreburgh Gate',188,470,7,'cave'],['Oreburgh Mine',240,522,7,'cave'],['Wayward Cave',236,404,7,'cave'],
+  ['Lost Tower',440,428,7,'spot'],['Solaceon Ruins',508,406,7,'cave'],['Ruin Maniac Cave',574,402,7,'cave'],['Maniac Tunnel',574,422,7,'cave'],
+  ['Valor Lakefront',612,468,7,'spot'],['Turnback Cave',654,420,7,'cave'],['Great Marsh',452,520,8,'spot'],['Trophy Garden',406,480,7,'spot'],
+  ['Spear Pillar',316,222,7,'spot'],['Snowpoint Temple',334,40,7,'cave'],['Stark Mountain',621,44,8,'cave'],['Flower Paradise',762,246,7,'spot'],['Pal Park',268,588,7,'spot']];
 let mapLoc = null, mapSub = 0;
 const curTime = () => { const h = new Date().getHours(); return h >= 4 && h < 10 ? 0 : h >= 10 && h < 20 ? 1 : 2; };
 let mapTime = curTime();
@@ -701,42 +706,31 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const sv = (tag, attrs = {}, ...kids) => { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); kids.forEach(k => e.append(k)); return e; };
 function buildMap() {
   const svg = $('#mapSvg');
-  svg.append(sv('rect', { x: 0, y: 0, width: 122, height: 76, class: 'sea' }));
-  svg.append(sv('path', { class: 'land', d: 'M1 50 Q0 30 6 22 L14 10 Q22 0 44 1 L64 3 Q80 2 88 14 L98 22 Q100 40 98 52 L96 62 Q80 66 66 66 L52 68 Q34 66 24 66 L10 66 Q2 64 1 50 Z' }));
-  svg.append(sv('path', { class: 'land', d: 'M92 2 L118 1 Q121 10 119 24 L106 30 Q98 30 96 22 Z' }));
-  svg.append(sv('path', { class: 'land', d: 'M28 72 L46 72 L46 67 L30 67 Z' }));
-  const gMtn = sv('g', { tabindex: 0, 'data-loc': 'Mt. Coronet' }, sv('rect', { x: 38, y: 11, width: 4.6, height: 36, rx: 1.4, class: 'mtn' }), sv('text', { x: 40.3, y: 30, class: 'lbl', transform: 'rotate(-90 40.3 30)', 'text-anchor': 'middle' }, 'Mt. Coronet'));
-  const layer = sv('g');
-  for (const [name, ...parts] of ROUTES) {
-    const sea = parts[parts.length - 1] === 'sea'; const segs = parts.filter(p => Array.isArray(p) && Array.isArray(p[0]));
-    const g = sv('g', { tabindex: 0, 'data-loc': name, class: MAP.has(name) ? '' : 'nodata' });
-    for (const seg of segs) { const pts = seg.map(p => p.join(',')).join(' '); g.append(sv('polyline', { points: pts, class: 'rt' + (sea ? ' seart' : '') }), sv('polyline', { points: pts, class: 'hit' })); }
-    const s0 = segs[0], mid = s0[Math.floor((s0.length - 1) / 2)], nxt = s0[Math.min(s0.length - 1, Math.floor((s0.length - 1) / 2) + 1)];
-    const LP = { 'Route 219': [16.6, 68, 'end'], 'Route 209': [61.4, 41.5, 'start'], 'Route 205': [22.4, 27.8, 'end'], 'Route 212': [48.6, 52.6, 'end'],
-      'Route 217': [28.6, 12.2, 'end'], 'Route 206': [30.4, 33.6, 'start'] }[name];
-    g.append(sv('text', LP ? { x: LP[0], y: LP[1], class: 'rlbl', 'text-anchor': LP[2] } : { x: (mid[0] + nxt[0]) / 2, y: (mid[1] + nxt[1]) / 2 - 0.9, class: 'rlbl', 'text-anchor': 'middle' }, name.replace(/^(Sea )?Route /, '')));
-    g.append(sv('title', {}, name)); layer.append(g);
-  }
-  svg.append(layer, gMtn);
-  for (const [name, x, y, kind] of PLACES) {
-    const g = sv('g', { tabindex: 0, 'data-loc': name, class: MAP.has(name) ? '' : 'nodata' }, sv('circle', { cx: x, cy: y, r: 1.25, class: 'place ' + (kind || '') }), sv('title', {}, name));
-    svg.append(g);
-  }
-  for (const [name, x, y] of TOWNS) {
-    const g = sv('g', { tabindex: 0, 'data-loc': name, class: MAP.has(name) ? '' : 'nodata' }, sv('rect', { x: x - 2.2, y: y - 1.5, width: 4.4, height: 3, rx: .6, class: 'town' }),
-      sv('text', { x, y: y + 3.6, class: 'lbl', 'text-anchor': 'middle' }, name.replace(/ (Town|City)$/, '')), sv('title', {}, name));
-    svg.append(g);
-  }
+  svg.setAttribute('viewBox', `0 0 ${TM_W} ${TM_H}`);
+  svg.append(sv('image', { href: 'townmap.png', x: 0, y: 0, width: TM_W, height: TM_H, class: 'tmimg' }));
+  const tag = (name, ...kids) => { const g = sv('g', { tabindex: 0, 'data-loc': name, class: MAP.has(name) ? '' : 'nodata' }, ...kids, sv('title', {}, name)); svg.append(g); return g; };
+  for (const [name, ...segs] of ROUTES) tag(name, ...segs.flatMap(seg => { const pts = seg.map(p => p.join(',')).join(' '); return [sv('polyline', { points: pts, class: 'glow' }), sv('polyline', { points: pts, class: 'hit' })]; }));
+  for (const [name, x, y, w, h] of TOWNS) tag(name, sv('rect', { x: x - 3, y: y - 3, width: w + 6, height: h + 6, rx: 6, class: 'tbox' }));
+  for (const [name, x, y, r, kind] of PLACES) tag(name, sv('circle', { cx: x, cy: y, r: kind ? r : r + 3, class: kind ? 'pin ' + kind : 'tbox' }));
+  const tip = $('#mapTip');
+  svg.addEventListener('pointermove', e => {
+    const g = e.target.closest('g[data-loc]');
+    if (!g || e.pointerType === 'touch') { tip.hidden = true; return; }
+    const r = $('.mapbox').getBoundingClientRect();
+    tip.textContent = g.dataset.loc; tip.hidden = false;
+    tip.style.left = (e.clientX - r.left) + 'px'; tip.style.top = (e.clientY - r.top) + 'px';
+  });
+  svg.addEventListener('pointerleave', () => { tip.hidden = true; });
   svg.addEventListener('click', e => { const g = e.target.closest('g[data-loc]'); if (g) pickLoc(g.dataset.loc); });
   svg.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const g = e.target.closest('g[data-loc]'); if (g) { e.preventDefault(); pickLoc(g.dataset.loc); } } });
-  const names = [...new Set([...TOWNS.map(t => t[0]), ...PLACES.map(p => p[0]), ...ROUTES.map(r => r[0]), 'Mt. Coronet', ...MAP.keys()])]
+  const names = [...new Set([...TOWNS.map(t => t[0]), ...PLACES.map(p => p[0]), ...ROUTES.map(r => r[0]), ...MAP.keys()])]
     .sort((a, b) => { const ra = a.match(/Route (\d+)/), rb = b.match(/Route (\d+)/); if (ra && rb) return ra[1] - rb[1]; if (ra) return -1; if (rb) return 1; return a.localeCompare(b); });
   names.forEach(n => $('#mapPick').append(new Option(n + (MAP.has(n) ? '' : ' (no wild Pokémon)'), n)));
   $('#mapPick').addEventListener('change', e => { if (e.target.value) pickLoc(e.target.value); });
   $$('[data-time]').forEach(b => b.addEventListener('click', () => { mapTime = +b.dataset.time; renderMapPanel(); }));
 }
 function pickLoc(name) { mapLoc = name; mapSub = 0; $('#mapPick').value = name; renderMap(); if (innerWidth <= 860) $('#mapPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-function renderMap() { $$('#mapSvg g[data-loc]').forEach(g => g.classList.toggle('on', g.dataset.loc === mapLoc)); renderMapPanel(); }
+function renderMap() { $$('#mapSvg g[data-loc]').forEach(g => g.classList.toggle('on', g.dataset.loc === mapLoc)); const n = $('#mapName'); n.hidden = !mapLoc; n.textContent = mapLoc || ''; renderMapPanel(); }
 const POSTGAME_LOCS = new Set(['Route 224', 'Route 225', 'Sea Route 226', 'Route 227', 'Route 228', 'Route 229', 'Sea Route 230', 'Resort Area', 'Stark Mountain', 'Fight Area', 'Survival Area', 'Turnback Cave', 'Sendoff Spring', 'Snowpoint Temple', 'Flower Paradise', 'Newmoon Island', 'Hall of Origin']);
 function renderMapPanel() {
   $$('[data-time]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.time === mapTime));
