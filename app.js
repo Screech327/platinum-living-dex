@@ -466,7 +466,7 @@ function sinDetail(s, inDrawer) {
   const d = BY.get(s.id);
   return el('div', { class: 'sdetail' },
     s.tip ? el('div', {}, el('h5', { text: 'How to see it' }), el('p', { style: 'margin:2px 0 0', text: s.tip })) : null,
-    s.how === 'catch' ? el('div', {}, el('h5', { text: `Catch it during the story (${s.locs.length} place${s.locs.length === 1 ? '' : 's'})` }), el('ul', {}, s.locs.map(w => el('li', { text: w })))) : null,
+    s.how === 'catch' ? el('div', {}, el('h5', { text: `Catch it during the story (${s.locs.length} place${s.locs.length === 1 ? '' : 's'})` }), el('ul', {}, s.locs.map(w => locLi(w, s.id)))) : null,
     s.how === 'evolve' ? el('div', {}, el('h5', { text: 'Evolve' }), el('p', { style: 'margin:2px 0 0', text: s.wild })) : null,
     s.tr.length ? trainerList(s) : null,
     !s.tip && !s.tr.length && s.how === 'special' ? el('p', { text: d.w }) : null,
@@ -674,6 +674,28 @@ function initSync() {
 /* ---------------- MAP view ---------------- */
 const MAP = new Map((window.MAPDATA || []).map(([loc, subs]) => [loc, subs]));
 const MAPNOTE = new Map((window.MAPDATA || []).map(([loc, , note]) => [loc, note || '']));
+const MAP_NAMES = [...MAP.keys()].sort((a, b) => b.length - a.length);
+const subHas = (secs, id) => secs.some(([, rows]) => rows.some(r => r[0] === id));
+// turn a location line from a Pokémon card into a map target {loc, sub}
+function mapRef(text, id) {
+  let loc = MAP_NAMES.find(n => text.startsWith(n));
+  if (!loc && text.includes(': ')) { text = text.slice(text.indexOf(': ') + 2); loc = MAP_NAMES.find(n => text.startsWith(n)); }
+  if (!loc) return null;
+  const has = MAP.get(loc).map(([s, secs], i) => ({ s, i, ok: subHas(secs, id) })).filter(x => x.ok);
+  const rest = text.slice(loc.length);
+  const m = has.find(x => x.s && rest.includes(x.s.replace(/ \(.*\)$/, '').split(',')[0])) || has[0];
+  return { loc, sub: m ? m.i : 0 };
+}
+let mapHi = null;
+function openOnMap(loc, sub, id) {
+  if (drawerId) closeDrawer();
+  setView('map'); mapLoc = loc; mapSub = sub; mapHi = id; $('#mapPick').value = loc; renderMap();
+  requestAnimationFrame(() => { const r = $('#mapPanel tr.hl'); (innerWidth <= 860 ? $('#mapPanel') : r || $('#mapPanel')).scrollIntoView({ behavior: 'smooth', block: innerWidth <= 860 ? 'start' : 'center' }); });
+}
+function locLi(text, id) {
+  const r = mapRef(text, id);
+  return el('li', {}, text, r ? el('button', { type: 'button', class: 'maplink', title: 'Show on the map', onclick: e => { e.stopPropagation(); openOnMap(r.loc, r.sub, id); } }, '⌖ Map') : null);
+}
 // hotspots over Sam's Town Map screenshot (townmap.png, 808 x 626 px). Routes are polylines; towns are rects; extra places are dots.
 const TM_W = 808, TM_H = 626;
 const ROUTES = [
@@ -729,7 +751,7 @@ function buildMap() {
   $('#mapPick').addEventListener('change', e => { if (e.target.value) pickLoc(e.target.value); });
   $$('[data-time]').forEach(b => b.addEventListener('click', () => { mapTime = +b.dataset.time; renderMapPanel(); }));
 }
-function pickLoc(name) { mapLoc = name; mapSub = 0; $('#mapPick').value = name; renderMap(); if (innerWidth <= 860) $('#mapPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function pickLoc(name) { mapLoc = name; mapSub = 0; mapHi = null; $('#mapPick').value = name; renderMap(); if (innerWidth <= 860) $('#mapPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function renderMap() { $$('#mapSvg g[data-loc]').forEach(g => g.classList.toggle('on', g.dataset.loc === mapLoc)); const n = $('#mapName'); n.hidden = !mapLoc; n.textContent = mapLoc || ''; renderMapPanel(); }
 const POSTGAME_LOCS = new Set(['Route 224', 'Route 225', 'Sea Route 226', 'Route 227', 'Route 228', 'Route 229', 'Sea Route 230', 'Resort Area', 'Stark Mountain', 'Fight Area', 'Survival Area', 'Turnback Cave', 'Sendoff Spring', 'Snowpoint Temple', 'Flower Paradise', 'Newmoon Island', 'Hall of Origin']);
 function renderMapPanel() {
@@ -742,6 +764,14 @@ function renderMapPanel() {
   if (!subs) { P.replaceChildren(...head, el('p', { class: 'sub', text: 'No wild Pokémon here.' })); return; }
   const subBtns = subs.length > 1 ? el('div', { class: 'subs' }, subs.map(([sub], i) => el('button', { type: 'button', 'aria-pressed': String(i === mapSub), text: sub || 'Main area', onclick: () => { mapSub = i; renderMapPanel(); } }))) : null;
   const [, secs] = subs[Math.min(mapSub, subs.length - 1)];
+  let other = null;
+  if (subs.length > 1) {
+    const here = new Set(secs.flatMap(([, rows]) => rows.map(r => r[0])));
+    const elsewhere = new Map();
+    subs.forEach(([lab, ss], i) => { if (i !== mapSub && lab !== 'Honey tree') ss.forEach(([, rows]) => rows.forEach(r => { if (!here.has(r[0]) && !elsewhere.has(r[0])) elsewhere.set(r[0], i); })); });
+    other = el('div', { class: 'otherparts' }, el('span', { text: `${mapLoc} has ${subs.length} parts — use the buttons above to switch.` + (elsewhere.size ? ' Only in another part:' : '') }),
+      ...[...elsewhere].map(([id, i]) => el('button', { type: 'button', class: 'opchip' + (isGot(id) ? ' got' : ''), onclick: () => { mapSub = i; mapHi = id; renderMapPanel(); } }, img(id), BY.get(id).n)));
+  }
   const TL = ['Morning', 'Day', 'Night'];
   const ONE = new Set(['Gift', 'Egg gift', 'One-time encounter', 'In-game trade']);
   const monCell = (id, note) => el('td', {}, el('div', { class: 'mon', onclick: () => openDrawer(id), title: 'Open details' }, img(id), el('span', { class: 'mn' }, BY.get(id).n, note ? el('small', { text: note }) : null)));
@@ -749,18 +779,18 @@ function renderMapPanel() {
   const tables = secs.map(([sec, rows]) => {
     if (ONE.has(sec)) return el('table', { class: 'enc' }, el('caption', { text: sec }),
       el('thead', {}, el('tr', {}, el('th', { text: 'Pokémon' }), el('th', { text: 'Lv' }))),
-      el('tbody', {}, rows.map(([id, , , , lo, hi, note]) => el('tr', { class: isGot(id) ? 'got' : '' }, monCell(id, note), el('td', { class: 'r', text: lvText(lo, hi) })))));
+      el('tbody', {}, rows.map(([id, , , , lo, hi, note]) => el('tr', { class: (isGot(id) ? 'got ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note), el('td', { class: 'r', text: lvText(lo, hi) })))));
     const vary = rows.some(r => r[1] !== r[2] || r[2] !== r[3]);
     return el('table', { class: 'enc' }, el('caption', { text: sec }),
       el('thead', {}, el('tr', {}, el('th', { text: 'Pokémon' }), ...(vary ? TL.map((t, i) => el('th', { class: i === mapTime ? 'now' : '', text: t.slice(0, 3) })) : [el('th', { text: 'Rate' })]), el('th', { text: 'Lv' }))),
       el('tbody', {}, rows.map(([id, m, d, n, lo, hi, note]) => {
         const rates = [m, d, n];
-        return el('tr', { class: (isGot(id) ? 'got ' : '') + (vary && rates[mapTime] === 0 ? 'dim' : '') }, monCell(id, note),
+        return el('tr', { class: (isGot(id) ? 'got ' : '') + (vary && rates[mapTime] === 0 ? 'dim ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note),
           ...(vary ? rates.map((r, i) => el('td', { class: 'r' + (i === mapTime ? ' now' : '') + (r === 0 ? ' zero' : ''), text: r ? r + '%' : '—' })) : [el('td', { class: 'r', text: m + '%' })]),
           el('td', { class: 'r', text: lvText(lo, hi) }));
       })));
   });
-  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dual-slot rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' }));
+  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...(other ? [other] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dual-slot rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' }));
 }
 
 /* ---------------- drawer ---------------- */
@@ -807,7 +837,7 @@ function openDrawer(id) {
       el('dt', { text: 'Unlocks' }), el('dd', { text: TIER_NOTES[d.rank] }),
       d.need ? el('dt', { text: 'Needs' }) : null, d.need ? el('dd', { text: d.need }) : null),
     steps.length ? el('div', { class: 'dsec' }, el('h4', { text: 'How to get it' }), el('ol', { class: 'steps' }, steps.map(s => el('li', { text: s })))) : null,
-    d.locs.length ? el('div', { class: 'dsec' }, el('h4', { text: `${isEvo ? 'Also catchable in Platinum' : 'Every place to catch it in Platinum'} (${d.locs.length})` }), el('div', { class: 'where' }, el('ul', {}, d.locs.map(l => el('li', { text: l })))))
+    d.locs.length ? el('div', { class: 'dsec' }, el('h4', { text: `${isEvo ? 'Also catchable in Platinum' : 'Every place to catch it in Platinum'} (${d.locs.length})` }), el('div', { class: 'where' }, el('ul', {}, d.locs.map(l => locLi(l, d.id)))))
       : (isEvo || d.c === 'Wild' ? null : el('div', { class: 'dsec' }, el('h4', { text: 'Where' }), whereList(d.w))),
     isEvo || !d.locs.length || !d.w.includes(' · ') ? null : el('div', { class: 'dsec' }, el('h4', { text: 'Other ways' }), whereList(d.w.split(' · ').slice(1).join(' · '))),
     copies ? el('div', { class: 'dsec' }, el('h4', { text: 'Copies' }), el('p', { class: 'sub', text: `Catch or breed ${copies.length + 1}: one stays ${d.n}, the rest become ${copies.map(c => BY.get(c).n).join(', ')}. Track them on the Copies tab.` })) : null,
@@ -836,6 +866,7 @@ function setView(v) {
 function refresh() { header(); RENDER[view](); }
 
 function init() {
+  window.__pld = { mapRef, MAP, subHas, openDrawer };
   load(); buildSin(); buildGrid(); buildMap(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore(); initStream(); initSync();
   $$('[data-view]').forEach(b => b.addEventListener('click', () => { setView(b.dataset.view); scrollTo({ top: 0 }); }));
   $('#scrim').addEventListener('click', closeDrawer);

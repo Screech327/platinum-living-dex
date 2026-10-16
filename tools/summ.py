@@ -94,7 +94,7 @@ def _groups(es):
 def _fmt(x, maxsubs=3):
     loc = x['loc']
     if x['subs'] and all(re.fullmatch(r'Area \d', t) for t in x['subs']): loc += ' Area ' + '/'.join(t[5:] for t in sorted(x['subs']))
-    elif x['subs']: loc += ' ' + ('/'.join(re.sub(r' \((.*)\)$', r', \1', t) for t in x['subs']) if len(x['subs']) <= maxsubs else f"({len(x['subs'])} areas)")
+    elif x['subs']: loc += ' ' + (', '.join(re.sub(r' \(.*\)$', '', t) for t in x['subs']) if len(x['subs']) <= maxsubs else f"({len(x['subs'])} areas)")
     meth = MNAME.get(x['method'], x['method'])
     if meth == 'grass/cave':
         meth = 'grass' if 'Outside' in loc or 'summit' in loc else 'cave' if any(w in x['loc'] for w in CAVE_WORDS) else 'grass'
