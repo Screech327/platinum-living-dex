@@ -209,9 +209,7 @@ function renderBoxes() {
   const evoHere = DEX.filter(d => d.id >= start && d.id <= end && isEvoMark(d.id)).length;
   $('#boxRange').textContent = `#${pad(start)}–#${pad(end)} · ${filled}/${end - start + 1} filled` + (evoHere ? ` · ${evoHere} to evolve` : '');
   $$('[data-boxmode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.boxmode === boxMode));
-  const ev = evoIds(), el2 = $('#evoList');
-  el2.hidden = !ev.length;
-  el2.replaceChildren(el('span', { class: 'evh', text: `Waiting to evolve (${ev.length})` }), ...ev.map(id => el('button', { type: 'button', class: 'evchip', title: 'Go to its slot', onclick: () => goToSlot(id) }, img(id), BY.get(id).n)));
+
   const pc = $('#pcbox'); pc.replaceChildren();
   for (let i = start; i < start + 30; i++) {
     if (i > 493) { pc.append(el('div', { class: 'slot blank' })); continue; }
