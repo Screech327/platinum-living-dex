@@ -222,8 +222,7 @@ function renderBoxes() {
   for (let b = 1; b <= 17; b++) {
     const s = (b - 1) * 30 + 1, e = Math.min(b * 30, 493);
     const full = DEX.filter(d => d.id >= s && d.id <= e).every(d => isGot(d.id));
-    const hasEvo = !full && DEX.some(d => d.id >= s && d.id <= e && isEvoMark(d.id));
-    dots.append(el('button', { type: 'button', class: full ? 'full' : hasEvo ? 'hasevo' : '', 'aria-current': b === box ? 'true' : 'false', 'aria-label': 'Box ' + b, text: b, onclick: () => { box = b; renderBoxes(); } }));
+    dots.append(el('button', { type: 'button', class: full ? 'full' : '', 'aria-current': b === box ? 'true' : 'false', 'aria-label': 'Box ' + b, text: b, onclick: () => { box = b; renderBoxes(); } }));
   }
 }
 function goToSlot(id) {
