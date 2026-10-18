@@ -21,8 +21,8 @@ const el = (tag, attrs = {}, ...kids) => {
 const img = (id, cls = 'px') => el('img', { class: cls, src: SPRITE(id), alt: '', loading: 'lazy', decoding: 'async', width: 64, height: 64 });
 
 /* ---------------- state ---------------- */
-let S = { boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {} };
-const fresh = () => ({ boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {} });
+let S = { boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {}, evo: {} };
+const fresh = () => ({ boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {}, evo: {} });
 
 let storageOK = true;
 function load() {
@@ -31,7 +31,7 @@ function load() {
   initMt();
 }
 /* change tracking: every key in these sections gets a modified-time in S.mt, so two devices can merge (newest wins per Pokémon) */
-const SECS = ['boxed', 'seen', 'have', 'notes', 'timers'];
+const SECS = ['boxed', 'seen', 'have', 'notes', 'timers', 'evo'];
 let LAST = {}, MTREF = {};
 const snap = () => { const o = {}; for (const sec of SECS) for (const [k, v] of Object.entries(S[sec] || {})) o[sec + ':' + k] = JSON.stringify(v); return o; };
 function stamp() {
@@ -52,6 +52,9 @@ function save() {
   saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; } catch (e) { storageOK = false; toast('This browser is blocking saving — download a backup from More.'); } }, 120);
 }
 const isGot = id => !!S.boxed[id];
+const isEvoMark = id => !isGot(id) && !!(S.evo && S.evo[id]);
+const evoIds = () => Object.keys(S.evo || {}).map(Number).filter(isEvoMark).sort((a, b) => a - b);
+function setEvo(id, on) { if (on) S.evo[id] = Date.now(); else delete S.evo[id]; save(); toast(on ? `${BY.get(id).n} marked: needs evolving` : `${BY.get(id).n}: evolve mark removed`); refresh(); if (drawerId === id) openDrawer(id); }
 const gotCount = () => Object.keys(S.boxed).length;
 
 /* ---------------- derived data ---------------- */
@@ -109,7 +112,7 @@ function confetti() {
 const MILESTONES = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 484, 493];
 function setGot(id, on) {
   const before = gotCount();
-  if (on) { S.boxed[id] = Date.now(); if (SINBY.has(id)) S.seen[id] = S.seen[id] || Date.now(); } else delete S.boxed[id];
+  if (on) { S.boxed[id] = Date.now(); if (SINBY.has(id)) S.seen[id] = S.seen[id] || Date.now(); if (S.evo[id]) delete S.evo[id]; } else delete S.boxed[id];
   save(); publish(on ? 'caught' : 'uncaught', id);
   const d = BY.get(id), n = gotCount();
   toast(on ? `${d.n} caught! ${n}/493` : `${d.n} unchecked`);
@@ -176,7 +179,7 @@ function renderGrid() {
   let shown = 0;
   for (const d of DEX) {
     const { li, tick } = cards.get(d.id), got = isGot(d.id), ok = matches(d);
-    tick.checked = got; li.classList.toggle('got', got); li.hidden = !ok; if (ok) shown++;
+    tick.checked = got; li.classList.toggle('got', got); li.classList.toggle('evo', isEvoMark(d.id)); li.hidden = !ok; if (ok) shown++;
   }
   $('#noRes').hidden = shown > 0;
   $('#resultLine').textContent = shown === 493 ? 'Showing all 493 — tap a card for details, tap the box to mark it caught.' : `Showing ${shown} of 493`;
@@ -193,23 +196,36 @@ function initFilters() {
 
 /* ---------------- BOXES view ---------------- */
 let box = 1, boxHit = null;
+let boxMode = (() => { try { return localStorage.getItem('pld-boxmode') || 'view'; } catch (e) { return 'view'; } })();
+function slotTap(i) {
+  if (boxMode === 'evo') { if (isGot(i)) { toast(`${BY.get(i).n} is already caught`); return; } setEvo(i, !S.evo[i]); }
+  else if (boxMode === 'got') { setGot(i, !isGot(i)); refresh(); }
+  else openDrawer(i);
+}
 function renderBoxes() {
   const start = (box - 1) * 30 + 1, end = Math.min(box * 30, 493);
   $('#boxName').textContent = 'Box ' + box;
   const filled = DEX.filter(d => d.id >= start && d.id <= end && isGot(d.id)).length;
-  $('#boxRange').textContent = `#${pad(start)}–#${pad(end)} · ${filled}/${end - start + 1} filled`;
+  const evoHere = DEX.filter(d => d.id >= start && d.id <= end && isEvoMark(d.id)).length;
+  $('#boxRange').textContent = `#${pad(start)}–#${pad(end)} · ${filled}/${end - start + 1} filled` + (evoHere ? ` · ${evoHere} to evolve` : '');
+  $$('[data-boxmode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.boxmode === boxMode));
+  const ev = evoIds(), el2 = $('#evoList');
+  el2.hidden = !ev.length;
+  el2.replaceChildren(el('span', { class: 'evh', text: `Waiting to evolve (${ev.length})` }), ...ev.map(id => el('button', { type: 'button', class: 'evchip', title: 'Go to its slot', onclick: () => goToSlot(id) }, img(id), BY.get(id).n)));
   const pc = $('#pcbox'); pc.replaceChildren();
   for (let i = start; i < start + 30; i++) {
     if (i > 493) { pc.append(el('div', { class: 'slot blank' })); continue; }
     const d = BY.get(i);
-    pc.append(el('button', { type: 'button', class: 'slot' + (isGot(i) ? ' got' : '') + (i === boxHit ? ' hit' : ''), title: `#${pad(i)} ${d.n}`, 'aria-label': `#${pad(i)} ${d.n}${isGot(i) ? ', boxed' : ''}`, onclick: () => openDrawer(i) },
-      el('span', { class: 'sn', text: pad(i) }), img(i)));
+    const ev = isEvoMark(i);
+    pc.append(el('button', { type: 'button', class: 'slot' + (isGot(i) ? ' got' : '') + (ev ? ' evo' : '') + (i === boxHit ? ' hit' : ''), title: `#${pad(i)} ${d.n}${ev ? ' — needs evolving' : ''}`, 'aria-label': `#${pad(i)} ${d.n}${isGot(i) ? ', caught' : ev ? ', needs evolving' : ''}`, onclick: () => slotTap(i) },
+      el('span', { class: 'sn', text: pad(i) }), img(i), ev ? el('span', { class: 'evtag', text: 'EVO' }) : null));
   }
   const dots = $('#boxDots'); dots.replaceChildren();
   for (let b = 1; b <= 17; b++) {
     const s = (b - 1) * 30 + 1, e = Math.min(b * 30, 493);
     const full = DEX.filter(d => d.id >= s && d.id <= e).every(d => isGot(d.id));
-    dots.append(el('button', { type: 'button', class: full ? 'full' : '', 'aria-current': b === box ? 'true' : 'false', 'aria-label': 'Box ' + b, text: b, onclick: () => { box = b; renderBoxes(); } }));
+    const hasEvo = !full && DEX.some(d => d.id >= s && d.id <= e && isEvoMark(d.id));
+    dots.append(el('button', { type: 'button', class: full ? 'full' : hasEvo ? 'hasevo' : '', 'aria-current': b === box ? 'true' : 'false', 'aria-label': 'Box ' + b, text: b, onclick: () => { box = b; renderBoxes(); } }));
   }
 }
 function goToSlot(id) {
@@ -231,6 +247,7 @@ function initBoxes() {
   $('#bq').addEventListener('input', () => { const r = boxSearch(); if (r.length === 1) goToSlot(r[0].id); });
   $('#bq').addEventListener('keydown', e => { if (e.key === 'Enter') { const r = boxSearch(); if (r.length) goToSlot(r[0].id); } });
   $('#bqClear').addEventListener('click', () => { $('#bq').value = ''; boxSearch(); $('#bq').focus(); });
+  $$('[data-boxmode]').forEach(b => b.addEventListener('click', () => { boxMode = b.dataset.boxmode; try { localStorage.setItem('pld-boxmode', boxMode); } catch (e) {} renderBoxes(); }));
   $('#boxPrev').addEventListener('click', () => { box = box === 1 ? 17 : box - 1; renderBoxes(); });
   $('#boxNext').addEventListener('click', () => { box = box === 17 ? 1 : box + 1; renderBoxes(); });
   let sx = null;
@@ -583,7 +600,7 @@ const DEVICE = (() => { try { let d = localStorage.getItem('pld-device'); if (!d
 let syncBusy = false, syncAgain = false, syncT, es2 = null, syncErr = '';
 const gh = (path, opt = {}) => fetch('https://api.github.com' + path, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + SY.token, Accept: 'application/vnd.github+json' }, opt.headers || {}) }))
   .then(async r => { if (!r.ok) { const e = new Error(r.status === 401 ? 'GitHub rejected the key — make a new one' : r.status === 404 ? 'Sync file not found' : 'GitHub error ' + r.status); e.status = r.status; throw e; } return r.json(); });
-const payload = () => JSON.stringify({ app: 'platinum-living-dex', v: 2, saved: new Date().toISOString(), boxed: S.boxed, seen: S.seen, have: S.have, notes: S.notes, timers: S.timers, mt: S.mt });
+const payload = () => JSON.stringify({ app: 'platinum-living-dex', v: 2, saved: new Date().toISOString(), boxed: S.boxed, seen: S.seen, have: S.have, notes: S.notes, timers: S.timers, evo: S.evo, mt: S.mt });
 function merge(R) {
   if (!R || !R.mt) return { changed: false, localNewer: true };
   let changed = false, localNewer = false;
@@ -826,6 +843,7 @@ function openDrawer(id) {
       el('div', {}, el('span', { class: 'num', text: '#' + pad(id) + ' · ' + regionOf(id) }), el('h3', { text: d.n }),
         el('div', { class: 'chips', style: 'margin-top:6px' }, chip(d.c), chip(TIERS[d.rank], 'tier' + d.rank), d.cp ? chip('catch ×' + d.cp, 'cp') : null))),
     el('label', { class: 'boxit' + (got ? ' got' : '') }, tick, got ? `Caught ${new Date(S.boxed[id]).toLocaleDateString()}` : 'Mark as caught'),
+    got ? null : el('button', { type: 'button', class: 'evobtn' + (isEvoMark(id) ? ' on' : ''), onclick: () => setEvo(id, !isEvoMark(id)) }, isEvoMark(id) ? '⬆ Needs evolving — tap to clear' : '⬆ Mark as needs evolving'),
     SINBY.has(id) ? el('div', { class: 'dsec' }, el('h4', { text: `Sinnoh Dex #${String(SINBY.get(id).rn).padStart(3, '0')}` }),
       el('div', { class: 'row' },
         el('button', { type: 'button', class: isSeen(id) ? '' : 'ghost', text: isSeen(id) ? '👁 Seen' : '👁 Mark seen', onclick: () => setSeen(id, !isSeen(id)) }),

@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=20261016140106">
+<link rel="stylesheet" href="styles.css?v=20261018022528">
 </head>
 <body>
 <div class="app">
@@ -100,8 +100,17 @@
         <div class="boxtitle"><b id="boxName">Box 1</b><span id="boxRange"></span></div>
         <button type="button" class="ghost" id="boxNext" aria-label="Next box">▶</button>
       </div>
+      <div class="boxmode">
+        <span>Tapping a slot</span>
+        <div class="seg" role="group" aria-label="What tapping a slot does">
+          <button type="button" data-boxmode="view">Shows info</button>
+          <button type="button" data-boxmode="got">Marks caught</button>
+          <button type="button" data-boxmode="evo">Marks to evolve</button>
+        </div>
+      </div>
+      <div class="evolist" id="evoList" hidden></div>
       <div class="pcbox" id="pcbox"></div>
-      <p class="hint">Tap a slot to see the Pokémon. Greyed-out slots are still empty. Swipe or use the arrows to change boxes.</p>
+      <p class="hint">Greyed-out slots are still empty. Yellow slots are ones you have the Pokémon for but still need to evolve — catching it clears the mark. Swipe or use the arrows to change boxes.</p>
       <div class="boxdots" id="boxDots"></div>
     </section>
 
@@ -228,7 +237,7 @@
 <div class="toast" id="toast" role="status"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
-<script src="data.js?v=20261016140106"></script>
-<script src="app.js?v=20261016140106"></script>
+<script src="data.js?v=20261018022528"></script>
+<script src="app.js?v=20261018022528"></script>
 </body>
 </html>

@@ -298,3 +298,21 @@ textarea{width:100%;border-radius:var(--radius);border:1.5px solid var(--line);b
 .opchip img{width:26px;height:26px}
 .opchip.got{opacity:.6}
 .enc tr.hl td{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.slot.evo{background:#fff4c2;border:2px solid #f2b705}
+.slot.evo img{filter:none;opacity:.9}
+.slot .evtag{position:absolute;right:2px;bottom:2px;font:700 8.5px var(--pixel);background:#f2b705;color:#3a2c00;border-radius:4px;padding:1px 3px}
+.boxdots button.hasevo{border-color:#f2b705;box-shadow:inset 0 -3px 0 #f2b705}
+.boxmode{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 8px;font-size:13px;color:var(--muted)}
+.evolist{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px;padding:8px 10px;border-radius:var(--radius);background:#fff4c2;border:1px solid #f2b705}
+.evolist .evh{font-size:12.5px;font-weight:700;color:#5c4500;flex-basis:100%}
+.evchip{display:inline-flex;align-items:center;gap:2px;font:600 12px var(--body);padding:1px 8px 1px 2px;border-radius:999px;border:1px solid #f2b705;background:#fffaf0;color:#3a2c00;cursor:pointer}
+.evchip img{width:26px;height:26px}
+.evobtn{width:100%;margin-top:8px;justify-content:center;background:var(--surface);color:#8a6400;border:1.5px dashed #f2b705}
+.evobtn.on{background:#fff4c2;border-style:solid;color:#5c4500}
+.card.evo{background:#fff4c2;border-color:#f2b705}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .slot.evo,:root:not([data-theme="light"]) .card.evo{background:#3d3100}
+:root:not([data-theme="light"]) .evolist{background:#2e2500}:root:not([data-theme="light"]) .evolist .evh{color:#ffd95a}
+:root:not([data-theme="light"]) .evchip{background:#1f1900;color:#ffe58a}:root:not([data-theme="light"]) .evobtn{color:#ffd95a}:root:not([data-theme="light"]) .evobtn.on{background:#3d3100;color:#ffe58a}}
+:root[data-theme="dark"] .slot.evo,:root[data-theme="dark"] .card.evo{background:#3d3100}
+:root[data-theme="dark"] .evolist{background:#2e2500}:root[data-theme="dark"] .evolist .evh{color:#ffd95a}
+:root[data-theme="dark"] .evchip{background:#1f1900;color:#ffe58a}:root[data-theme="dark"] .evobtn{color:#ffd95a}:root[data-theme="dark"] .evobtn.on{background:#3d3100;color:#ffe58a}
