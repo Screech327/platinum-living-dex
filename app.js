@@ -60,13 +60,18 @@ const gotCount = () => Object.keys(S.boxed).length;
 /* ---------------- derived data ---------------- */
 const REGIONS = [['Kanto', 1, 151], ['Johto', 152, 251], ['Hoenn', 252, 386], ['Sinnoh', 387, 493]];
 const regionOf = id => REGIONS.find(r => id >= r[1] && id <= r[2])[0];
+// Evolutions that can ALSO be caught a special way (e.g. Arbok via a FireRed dongle) count for that method/game filter too
+const EVOISH = d => d.c === 'Evolve' || d.c === 'Trade evolution';
+const alsoVia = (d, re) => EVOISH(d) && (d.locs || []).some(l => re.test(l));
+const ALSO_METHOD = { 'Dongle': /^Dongle \(/, 'Poké Radar': /^Poké Radar:/, 'Swarm': /^Swarm:/ };
+const methodMatch = (d, m) => d.c === m || (ALSO_METHOD[m] ? alsoVia(d, ALSO_METHOD[m]) : false);
 const GAMES = [
   { name: 'Platinum', note: 'Everything you catch, evolve or breed on the Platinum cart itself.', test: d => d.tr === 'Native to Platinum' && d.c !== 'EVENT' && !/Diamond|Pearl|HG\/SS|HeartGold|SoulSilver|FireRed|LeafGreen|R\/S\/E|Ruby|Sapphire|Emerald|Gen 3/.test(d.src) },
   { name: 'Diamond', note: 'Murkrow and Stunky, plus fallbacks for Clamperl, Trapinch, Seel and the Skull Fossil. Trade to Platinum.', test: d => /Diamond|D\/P/.test(d.src) },
   { name: 'Pearl', note: 'Misdreavus and Glameow, plus fallbacks for Clamperl, Trapinch, Spheal and the Armor Fossil. Trade to Platinum.', test: d => /Pearl|D\/P/.test(d.src) },
   { name: 'HeartGold / SoulSilver', note: 'Legendaries, starters and Snorlax — and Pal Park with no daily limit. Trade to Platinum.', test: d => /HG\/SS|HeartGold|SoulSilver/.test(d.src) },
-  { name: 'FireRed / LeafGreen', note: 'Dongle spawns (cart in the GBA slot) and Pal Park sources like Kanto starters and Snorlax.', test: d => /FireRed|LeafGreen|FR\/LG|Any Gen 3/.test(d.src) },
-  { name: 'Ruby / Sapphire / Emerald', note: 'Dongle spawns and the Gen 3 legendaries via Pal Park.', test: d => /Ruby|Sapphire|Emerald|R\/S\/E|Any Gen 3/.test(d.src) },
+  { name: 'FireRed / LeafGreen', note: 'Dongle spawns (cart in the GBA slot) and Pal Park sources like Kanto starters and Snorlax.', test: d => /FireRed|LeafGreen|FR\/LG|Any Gen 3/.test(d.src) || alsoVia(d, /^Dongle \((FireRed|LeafGreen)/) },
+  { name: 'Ruby / Sapphire / Emerald', note: 'Dongle spawns and the Gen 3 legendaries via Pal Park.', test: d => /Ruby|Sapphire|Emerald|R\/S\/E|Any Gen 3/.test(d.src) || alsoVia(d, /^Dongle \((Ruby|Sapphire|Emerald)/) },
   { name: 'Spin-offs', note: 'Pokémon Ranger (Manaphy → Phione) and My Pokémon Ranch on Wii (Mew, Phione).', test: d => d.c === 'Spin-off' },
   { name: 'Events', note: 'Event-only. Fan-run WFC servers still hand these out.', test: d => d.c === 'EVENT' },
 ];
@@ -169,7 +174,7 @@ function matches(d) {
   if (q) { if (/^#?\d+$/.test(q)) { const n = q.replace('#', ''); if (!pad(d.id).startsWith(n.padStart(Math.min(n.length, 3), '0')) && String(d.id) !== n) return false; } else if (!d.key.includes(q)) return false; }
   if (show === 'need' && isGot(d.id)) return false;
   if (show === 'got' && !isGot(d.id)) return false;
-  const m = $('#fMethod').value; if (m && d.c !== m) return false;
+  const m = $('#fMethod').value; if (m && !methodMatch(d, m)) return false;
   const t = $('#fTier').value; if (t !== '' && d.rank !== +t) return false;
   const g = $('#fGame').value; if (g !== '' && !GAMES[+g].test(d)) return false;
   const r = $('#fRegion').value; if (r && regionOf(d.id) !== r) return false;
