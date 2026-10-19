@@ -30,7 +30,7 @@ def sections(rows):
         rows = sorted([[s, *v] for s, v in mons.items()], key=lambda r: (-max(r[1:4]), -int(r[6].split('~')[1].split()[0]) if '~' in r[6] else 0, r[0]))
         if sec.startswith('Dual-slot:'): duals.setdefault(json.dumps(rows), []).append(CART[sec[10:]]); continue
         out.append([sec, rows])
-    for rows, carts in duals.items(): out.append(['Dual-slot: ' + '/'.join(carts) + ' in GBA slot (after National Dex)', json.loads(rows)])
+    for rows, carts in duals.items(): out.append(['Dongle: ' + '/'.join(carts) + ' in GBA slot (after National Dex)', json.loads(rows)])
     ORDER = ['Grass / cave', 'Surfing', 'Old Rod', 'Good Rod', 'Super Rod']
     out.sort(key=lambda s: ORDER.index(s[0]) if s[0] in ORDER else 50)
     return out

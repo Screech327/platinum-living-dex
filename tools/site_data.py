@@ -33,7 +33,7 @@ BUCKET_FOR_CAT = {'Wild': 'wild', 'Poké Radar': 'radar', 'Swarm': 'swarm', 'Tro
 
 def best_rank(i, cat):
     b = classify(i)
-    if cat == 'Dual-slot': return 5
+    if cat == 'Dongle': return 5
     key = BUCKET_FOR_CAT.get(cat)
     if not key or key not in b: return None
     return min(entry_rank(e) for e in b[key])
@@ -143,7 +143,7 @@ for i in range(1, 494):
     for k, lab in LBL.items():
         if k in b: locs += [lab + x for x in full_list(b[k])] if k != 'honey' else ['Honey trees: all 21 trees (Routes 205–222, Eterna Forest, Floaroma Meadow, Fuego Ironworks, Valley Windworks)']
     for k in sorted(b):
-        if k.startswith('slot2-'): locs += [f"Dual-slot ({k[6:].title().replace('Firered', 'FireRed').replace('Leafgreen', 'LeafGreen')} in GBA slot): " + x for x in full_list(b[k])]
+        if k.startswith('slot2-'): locs += [f"Dongle ({k[6:].title().replace('Firered', 'FireRed').replace('Leafgreen', 'LeafGreen')} in GBA slot): " + x for x in full_list(b[k])]
     OUT.append(dict(id=i, n=r['name'], locs=locs, g=r['gen'], c=cat, w=r['where'], src=r['game'], need=r['block'], cp=r['copies'] or 0,
                     rank=rank, steps=steps or [], tr=transfer(r), fam=fam, pre=PRE.get(i), evo=EVO.get(i, '')))
 

@@ -65,8 +65,8 @@ const GAMES = [
   { name: 'Diamond', note: 'Murkrow and Stunky, plus fallbacks for Clamperl, Trapinch, Seel and the Skull Fossil. Trade to Platinum.', test: d => /Diamond|D\/P/.test(d.src) },
   { name: 'Pearl', note: 'Misdreavus and Glameow, plus fallbacks for Clamperl, Trapinch, Spheal and the Armor Fossil. Trade to Platinum.', test: d => /Pearl|D\/P/.test(d.src) },
   { name: 'HeartGold / SoulSilver', note: 'Legendaries, starters and Snorlax — and Pal Park with no daily limit. Trade to Platinum.', test: d => /HG\/SS|HeartGold|SoulSilver/.test(d.src) },
-  { name: 'FireRed / LeafGreen', note: 'Dual-slot spawns (cart in the GBA slot) and Pal Park sources like Kanto starters and Snorlax.', test: d => /FireRed|LeafGreen|FR\/LG|Any Gen 3/.test(d.src) },
-  { name: 'Ruby / Sapphire / Emerald', note: 'Dual-slot spawns and the Gen 3 legendaries via Pal Park.', test: d => /Ruby|Sapphire|Emerald|R\/S\/E|Any Gen 3/.test(d.src) },
+  { name: 'FireRed / LeafGreen', note: 'Dongle spawns (cart in the GBA slot) and Pal Park sources like Kanto starters and Snorlax.', test: d => /FireRed|LeafGreen|FR\/LG|Any Gen 3/.test(d.src) },
+  { name: 'Ruby / Sapphire / Emerald', note: 'Dongle spawns and the Gen 3 legendaries via Pal Park.', test: d => /Ruby|Sapphire|Emerald|R\/S\/E|Any Gen 3/.test(d.src) },
   { name: 'Spin-offs', note: 'Pokémon Ranger (Manaphy → Phione) and My Pokémon Ranch on Wii (Mew, Phione).', test: d => d.c === 'Spin-off' },
   { name: 'Events', note: 'Event-only. Fan-run WFC servers still hand these out.', test: d => d.c === 'EVENT' },
 ];
@@ -76,7 +76,7 @@ const TIER_NOTES = [
   'Needs Surf (5th badge).',
   'Victory Road — needs all 8 badges.',
   'Unlocks after you enter the Hall of Fame (Battle Zone, Route 224+, Super Rod, Stark Mountain).',
-  'Unlocks after the National Dex (Poké Radar, swarms, Trophy Garden, dual-slot, older fossils).',
+  'Unlocks after the National Dex (Poké Radar, swarms, Trophy Garden, dongle Pokémon, older fossils).',
   'Comes from one of your other carts — check its steps.',
   'Event distribution only.',
 ];
@@ -804,7 +804,7 @@ function renderMapPanel() {
           el('td', { class: 'r', text: lvText(lo, hi) }));
       })));
   });
-  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...(other ? [other] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dual-slot rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' }));
+  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...(other ? [other] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dongle rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' }));
 }
 
 /* ---------------- drawer ---------------- */

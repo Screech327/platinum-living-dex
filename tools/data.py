@@ -84,7 +84,7 @@ m(133, 'Gift', 'Bebe in Hearthome City gives one Eevee (Lv20). For the other 7, 
 m(137, 'Gift', 'A man in a house in northeast Veilstone City gives one Porygon (Lv25) — no requirements. One only — breed with Ditto for copies.', 'Platinum', 'One-time gift — breed copies')
 m(175, 'Gift', 'Cynthia gives a Togepi egg in Eterna City (after Team Galactic\'s building). Copies: Poké Radar Route 230, or breed.', 'Platinum', 'One-time egg — breed copies')
 m(447, 'Gift', 'Riley gives a Riolu egg after you clear Iron Island. One only — evolve it, then breed Lucario for a second Riolu.', 'Platinum', 'One-time egg — breed copies')
-m(94, 'Dual-slot', 'Old Chateau 2F, back room 4 (second room from the right) with ANY Gen 3 cart in the GBA slot, after the National Dex: 4% per encounter, Lv17. Far easier than trading a Haunter.', 'Any Gen 3 cart in GBA slot', 'DS/DS Lite + any GBA cart')
+m(94, 'Dongle', 'Old Chateau 2F, back room 4 (second room from the right) with ANY Gen 3 cart in the GBA slot, after the National Dex: 4% per encounter, Lv17. Far easier than trading a Haunter.', 'Any Gen 3 cart in GBA slot', 'DS/DS Lite + any GBA cart')
 
 FOSSIL = {138: ('Helix Fossil', True), 140: ('Dome Fossil', True), 142: ('Old Amber', True), 345: ('Root Fossil', True), 347: ('Claw Fossil', True),
           408: ('Skull Fossil', False), 410: ('Armor Fossil', False)}
@@ -161,7 +161,7 @@ def build():
                 cat, where, game, block = 'Great Marsh (daily)', 'Great Marsh daily rotation (check the binoculars on the 2nd floor of the Marsh building). Appears at 10% in one area on days it is picked.', 'Platinum', 'Post-National Dex · daily'
             elif any(k.startswith('slot2') for k in b):
                 carts = sorted({k[6:] for k in b if k.startswith('slot2')})
-                cat = 'Dual-slot'
+                cat = 'Dongle'
                 where = ' | '.join(f"{CART[c]} in GBA slot: {fmt_group(b['slot2-' + c], 2)}" for c in carts)
                 game = ' / '.join(CART[c] for c in carts) + ' in GBA slot'
                 block = 'DS/DS Lite + ' + ' or '.join(CART[c] for c in carts)
@@ -178,7 +178,7 @@ def build():
                 for k, lab in (('radar', 'Poké Radar'), ('swarm', 'Swarm'), ('marsh-rot', 'Great Marsh rotation'), ('trophy', 'Trophy Garden')):
                     if k in b: alts.append(f'also {lab}: ' + fmt_group(b[k], 2))
                 slots = sorted({k[6:] for k in b if k.startswith('slot2')})
-                if slots and i != 94: alts.append('also dual-slot (' + '/'.join(CART[c] for c in slots) + '): ' + fmt_group(b['slot2-' + slots[0]], 1))
+                if slots and i != 94: alts.append('also dongle (' + '/'.join(CART[c] for c in slots) + '): ' + fmt_group(b['slot2-' + slots[0]], 1))
             if cat == 'Trophy Garden' and i in INC: alts.append(f'or breed: {INC[i][0]} holding {INC[i][1]} + Ditto')
             if cat == 'Wild' and i in HONEY: alts.append('also honey trees (' + HONEY[i] + ')')
             if alts: where = where + ' · ' + ' · '.join(alts)
