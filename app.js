@@ -62,8 +62,8 @@ const REGIONS = [['Kanto', 1, 151], ['Johto', 152, 251], ['Hoenn', 252, 386], ['
 const regionOf = id => REGIONS.find(r => id >= r[1] && id <= r[2])[0];
 // Evolutions that can ALSO be caught a special way (e.g. Arbok via a FireRed dongle) count for that method/game filter too
 const EVOISH = d => d.c === 'Evolve' || d.c === 'Trade evolution';
-const alsoVia = (d, re) => EVOISH(d) && (d.locs || []).some(l => re.test(l));
-const ALSO_METHOD = { 'Dongle': /^Dongle \(/, 'Poké Radar': /^Poké Radar:/, 'Swarm': /^Swarm:/ };
+const alsoVia = (d, re) => d.c !== 'Wild' && (d.locs || []).some(l => re.test(l));
+const ALSO_METHOD = { 'Dongle': /^Dongle \(/, 'Poké Radar': /^Poké Radar:/, 'Swarm': /^Swarm:/, 'Trophy Garden': /^Trophy Garden/, 'Great Marsh (daily)': /^Great Marsh rotation:/, 'Honey tree': /^Honey trees:/ };
 const methodMatch = (d, m) => d.c === m || (ALSO_METHOD[m] ? alsoVia(d, ALSO_METHOD[m]) : false);
 const GAMES = [
   { name: 'Platinum', note: 'Everything you catch, evolve or breed on the Platinum cart itself.', test: d => d.tr === 'Native to Platinum' && d.c !== 'EVENT' && !/Diamond|Pearl|HG\/SS|HeartGold|SoulSilver|FireRed|LeafGreen|R\/S\/E|Ruby|Sapphire|Emerald|Gen 3/.test(d.src) },
@@ -523,7 +523,7 @@ function sinMatch(s) {
   if (sshow === 'seen' && (!isSeen(s.id) || isCaughtR(s.id))) return false;
   if (sshow === 'caught' && !isCaughtR(s.id)) return false;
   const h = $('#sHow').value;
-  if (h === 'trainer' && s.how === 'catch') return false;
+  if (h === 'trainer' && (s.how === 'catch' || !s.trAll)) return false;
   if (h === 'rare' && !(s.how !== 'catch' && s.trN <= 2 && s.trAll > 0)) return false;
   if (h === 'special' && !(s.how === 'special' || s.tip)) return false;
   return true;
