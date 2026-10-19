@@ -84,7 +84,7 @@ m(133, 'Gift', 'Bebe in Hearthome City gives one Eevee (Lv20). For the other 7, 
 m(137, 'Gift', 'A man in a house in northeast Veilstone City gives one Porygon (Lv25) — no requirements. One only — breed with Ditto for copies.', 'Platinum', 'One-time gift — breed copies')
 m(175, 'Gift', 'Cynthia gives a Togepi egg in Eterna City (after Team Galactic\'s building). Copies: Poké Radar Route 230, or breed.', 'Platinum', 'One-time egg — breed copies')
 m(447, 'Gift', 'Riley gives a Riolu egg after you clear Iron Island. One only — evolve it, then breed Lucario for a second Riolu.', 'Platinum', 'One-time egg — breed copies')
-m(94, 'Dual-slot', 'Old Chateau 2F (the room with eyes on the walls) with ANY Gen 3 cart in the GBA slot. Far easier than trading a Haunter.', 'Any Gen 3 cart in GBA slot', 'DS/DS Lite + any GBA cart')
+m(94, 'Dual-slot', 'Old Chateau 2F, back room 4 (second room from the right) with ANY Gen 3 cart in the GBA slot, after the National Dex: 4% per encounter, Lv17. Far easier than trading a Haunter.', 'Any Gen 3 cart in GBA slot', 'DS/DS Lite + any GBA cart')
 
 FOSSIL = {138: ('Helix Fossil', True), 140: ('Dome Fossil', True), 142: ('Old Amber', True), 345: ('Root Fossil', True), 347: ('Claw Fossil', True),
           408: ('Skull Fossil', False), 410: ('Armor Fossil', False)}

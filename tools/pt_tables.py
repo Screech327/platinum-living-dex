@@ -21,6 +21,9 @@ CUSTOM = {
     'maniac_tunnel': ('Maniac Tunnel', 'at all 26 Unown forms seen'),
     'iron_island': ('Iron Island', 'Outside'),
     'old_chateau': ('Old Chateau', 'Entrance hall'), 'old_chateau_dining_area': ('Old Chateau', 'Dining room'),
+    'old_chateau_back_west_room': ('Old Chateau', '2F back room 1 (far left)'), 'old_chateau_back_middle_west_room': ('Old Chateau', "2F back room 2 (Rotom's TV)"),
+    'old_chateau_back_middle_room': ('Old Chateau', '2F back room 3 (middle)'), 'old_chateau_back_middle_east_room': ('Old Chateau', '2F back room 4'),
+    'old_chateau_back_east_room': ('Old Chateau', '2F back room 5 (far right)'),
     'lake_verity_low_water': ('Lake Verity', 'early game'), 'lake_verity': ('Lake Verity', 'later'),
     'route_220': ('Sea Route 220', ''), 'route_223': ('Sea Route 223', ''), 'route_226': ('Sea Route 226', ''), 'route_230': ('Sea Route 230', ''),
 }
