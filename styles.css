@@ -315,3 +315,36 @@ textarea{width:100%;border-radius:var(--radius);border:1.5px solid var(--line);b
 :root[data-theme="dark"] .slot.evo,:root[data-theme="dark"] .card.evo{background:#3d3100}
 :root[data-theme="dark"] .evolist{background:#2e2500}:root[data-theme="dark"] .evolist .evh{color:#ffd95a}
 :root[data-theme="dark"] .evchip{background:#1f1900;color:#ffe58a}:root[data-theme="dark"] .evobtn{color:#ffd95a}:root[data-theme="dark"] .evobtn.on{background:#3d3100;color:#ffe58a}
+
+/* catch odds */
+.catch .cform{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;align-items:center;font-size:13.5px;margin-bottom:10px}
+.catch .cform label:not(.ck){display:flex;align-items:center;gap:8px}
+.catch .cform label span,.catch .chp span{color:var(--muted);font-size:12.5px}
+.catch .cform input[type=number]{width:64px;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface)}
+.catch .cfull{grid-column:1/-1}
+.catch .chp{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr 52px;gap:10px;align-items:center}
+.catch .chp input{width:100%;accent-color:var(--accent)}
+.catch .chpv{font-variant-numeric:tabular-nums;text-align:right}
+.catch .cnote{color:var(--muted);font-size:12.5px}
+.catch .ck{display:flex;align-items:center;gap:6px;cursor:pointer}
+.catch .ck input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.catch .seg{flex-wrap:wrap}
+.catch .csafari{display:flex;justify-content:space-between}
+.catch .csafari select{flex:0 1 auto}
+.ctab table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.ctab th{text-align:left;font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:0 6px 4px;border-bottom:1px solid var(--line)}
+.ctab th:nth-child(n+2),.ctab td:nth-child(3){text-align:right}
+.ctab td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ctab td:first-child{display:flex;flex-direction:column}
+.ctab .cx{font-size:11.5px;color:var(--muted)}
+.ctab td:nth-child(2){width:38%}
+.ctab td:nth-child(2){white-space:nowrap}
+.ctab td:nth-child(2) b{display:inline-block;min-width:46px;text-align:right}
+.ctab .cbar{display:inline-block;vertical-align:middle;width:calc(100% - 52px);height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-right:6px}
+.ctab .cbar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.ctab tr.best td{background:var(--accent-soft)}
+.ctab tr.best .cbar i{background:var(--done)}
+.ctab tr.dim td{color:var(--muted)}
+.ctab tr.dim .cbar i{background:var(--line)}
+.cfoot{font-size:12px;margin:8px 0 0}
+@media (max-width:420px){.catch .ck{grid-column:1/-1}.ctab td:nth-child(2){width:34%}}

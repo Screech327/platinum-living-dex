@@ -819,6 +819,101 @@ function whereList(text) {
   const main = parts[0].split(/; (?=[A-Z+])/);
   return el('div', { class: 'where' }, el('ul', {}, main.map(p => el('li', { text: p })), parts.slice(1).map(p => el('li', { text: p.charAt(0).toUpperCase() + p.slice(1) }))));
 }
+/* ---------------- catch odds (Platinum's exact formula, from the pret/pokeplatinum decomp) ---------------- */
+const CATCH = window.CATCH || [];
+const CF = { hp: 100, one: false, st: 0, turn: 1, night: false, water: false, marsh: 0 };
+const MARSH = [[10, 40], [10, 35], [10, 30], [10, 25], [10, 20], [10, 15], [10, 10], [15, 10], [20, 10], [25, 10], [30, 10], [35, 10], [40, 10]];
+const isqrt = n => { let x = Math.floor(Math.sqrt(n)); while (x * x > n) x--; while ((x + 1) * (x + 1) <= n) x++; return x; };
+function catchOnce(cr, mod, maxHP, curHP, st) {
+  let a = Math.floor(Math.floor(cr * mod / 10) * (maxHP * 3 - curHP * 2) / (maxHP * 3));
+  if (st === 1) a *= 2; else if (st === 2) a = Math.floor(a * 15 / 10);
+  if (a >= 255) return 1;
+  if (a <= 0) return 0;
+  const b = Math.floor(1048560 / isqrt(isqrt(Math.floor(16711680 / a))));
+  return Math.min(1, b / 65536) ** 4;
+}
+const hpAt = (base, lv, iv) => base === 1 ? 1 : Math.floor((2 * base + iv) * lv / 100) + lv + 10;
+function catchAvg(cr, mod, base, lv) { // HP IV unknown: average over all 32
+  let t = 0;
+  for (let iv = 0; iv < 32; iv++) {
+    const m = hpAt(base, lv, iv), c = CF.one ? 1 : Math.max(1, Math.round(m * CF.hp / 100));
+    t += catchOnce(cr, mod, m, Math.min(c, m), CF.st);
+  }
+  return t / 32;
+}
+function ballList(id, lv, cr) {
+  const net = CATCH[id - 1] && CATCH[id - 1][2], caught = isGot(id), t = Math.max(0, CF.turn - 1);
+  const nest = lv < 40 ? Math.max(10, 40 - lv) : 10, marsh = MARSH[6 + CF.marsh];
+  return [
+    { n: 'Poké Ball', m: 10 },
+    { n: 'Great Ball', m: 15 },
+    { n: 'Ultra Ball', m: 20 },
+    { n: 'Quick Ball', m: t < 1 ? 40 : 10, why: t < 1 ? 'first turn' : 'only ×4 on turn 1' },
+    { n: 'Timer Ball', m: Math.min(40, 10 + t), why: t >= 30 ? 'maxed' : 'grows each turn' },
+    { n: 'Dusk Ball', m: CF.night ? 35 : 10, why: CF.night ? 'night / cave' : 'needs night or a cave' },
+    { n: 'Net Ball', m: net ? 30 : 10, why: net ? 'Water/Bug' : 'not Water/Bug' },
+    { n: 'Dive Ball', m: CF.water ? 35 : 10, why: CF.water ? 'on water' : 'needs surfing/fishing' },
+    { n: 'Nest Ball', m: nest, why: lv <= 30 ? 'low level' : 'only helps under Lv30' },
+    { n: 'Repeat Ball', m: caught ? 30 : 10, why: caught ? 'you have one' : 'needs one already caught' },
+    { n: 'Luxury / Premier / Heal', m: 10, why: 'same as Poké Ball' },
+    { n: 'Safari Ball', m: 15, cr: Math.floor(cr * marsh[0] / marsh[1]), why: 'Great Marsh only' },
+  ];
+}
+const pctTxt = p => p >= 1 ? '100%' : p >= .995 ? '>99%' : p >= .1 ? Math.round(p * 100) + '%' : p >= .001 ? (p * 100).toFixed(1) + '%' : '<0.1%';
+const avgTxt = p => p <= 0 ? '—' : p >= 1 ? '1' : (1 / p) < 10 ? (1 / p).toFixed(1) : String(Math.round(1 / p));
+function catchSec(id) {
+  const c = CATCH[id - 1]; if (!c) return null;
+  const [cr, base, , defLv] = c;
+  let lv = defLv || 30;
+  const out = el('div', { class: 'ctab' }), hpNote = el('span', { class: 'cnote' });
+  const lvIn = el('input', { type: 'number', min: 1, max: 100, value: lv, inputmode: 'numeric', 'aria-label': 'Wild level' });
+  const hpIn = el('input', { type: 'range', min: 1, max: 100, value: CF.hp, 'aria-label': 'HP left %' });
+  const hpLbl = el('b', { class: 'chpv' });
+  const one = el('input', { type: 'checkbox', checked: CF.one || null });
+  const turnIn = el('input', { type: 'number', min: 1, max: 99, value: CF.turn, inputmode: 'numeric', 'aria-label': 'Turn' });
+  const night = el('input', { type: 'checkbox', checked: CF.night || null });
+  const water = el('input', { type: 'checkbox', checked: CF.water || null });
+  const marsh = el('select', { 'aria-label': 'Great Marsh bait and mud' }, [-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map(v =>
+    el('option', { value: v, selected: v === CF.marsh || null, text: v === 0 ? 'No bait/mud' : v > 0 ? `${v} more bait than mud` : `${-v} more mud than bait` })));
+  const stSeg = el('div', { class: 'seg', role: 'group', 'aria-label': 'Status' }, ['None', 'Sleep / Freeze', 'Para / Poison / Burn'].map((t, i) =>
+    el('button', { type: 'button', 'aria-pressed': String(CF.st === i), text: t, onclick: e => { CF.st = i; [...stSeg.children].forEach((b, j) => b.setAttribute('aria-pressed', String(j === i))); upd(); } })));
+  function upd() {
+    lv = Math.min(100, Math.max(1, parseInt(lvIn.value, 10) || 1));
+    CF.hp = +hpIn.value; CF.one = one.checked; CF.turn = Math.max(1, parseInt(turnIn.value, 10) || 1);
+    CF.night = night.checked; CF.water = water.checked; CF.marsh = +marsh.value;
+    hpIn.disabled = CF.one; hpLbl.textContent = CF.one ? '1 HP' : CF.hp + '%';
+    const mid = hpAt(base, lv, 15);
+    hpNote.textContent = CF.one ? '' : `about ${Math.max(1, Math.round(mid * CF.hp / 100))} of ${mid} HP`;
+    const rows = ballList(id, lv, cr).map(b => ({ ...b, p: catchAvg(b.cr != null ? b.cr : cr, b.m, base, lv) }));
+    rows.sort((a, b) => b.p - a.p);
+    const best = rows[0].p;
+    out.replaceChildren(el('table', {},
+      el('thead', {}, el('tr', {}, el('th', { text: 'Ball' }), el('th', { text: 'Per throw' }), el('th', { text: 'Avg balls' }))),
+      el('tbody', {}, rows.map(b => el('tr', { class: (b.p === best ? 'best ' : '') + (b.m === 10 && b.why && !b.cr ? 'dim' : '') },
+        el('td', {}, el('span', { text: b.n }), el('span', { class: 'cx', text: ` ×${b.m % 10 ? (b.m / 10).toFixed(1) : b.m / 10}` + (b.why ? ' · ' + b.why : '') })),
+        el('td', {}, el('span', { class: 'cbar' }, el('i', { style: `width:${Math.max(2, b.p * 100)}%` })), el('b', { text: pctTxt(b.p) })),
+        el('td', { text: avgTxt(b.p) }))),
+        el('tr', { class: 'dim' }, el('td', {}, 'Master Ball'), el('td', {}, el('b', { text: '100%' })), el('td', { text: '1' })))));
+  }
+  [lvIn, hpIn, turnIn, marsh].forEach(i => i.addEventListener('input', upd));
+  [one, night, water].forEach(i => i.addEventListener('change', upd));
+  upd();
+  return el('div', { class: 'dsec catch' },
+    el('h4', { text: `Catch odds · catch rate ${cr}` }),
+    el('div', { class: 'cform' },
+      el('label', {}, el('span', { text: 'Level' }), lvIn),
+      el('label', {}, el('span', { text: 'Turn' }), turnIn),
+      el('div', { class: 'chp' }, el('span', { text: 'HP left' }), hpIn, hpLbl),
+      el('div', { class: 'cfull' }, hpNote),
+      el('label', { class: 'ck cfull' }, one, ' Exactly 1 HP (False Swipe)'),
+      el('div', { class: 'cfull' }, stSeg),
+      el('label', { class: 'ck' }, night, ' Night (8pm–4am) or in a cave'),
+      el('label', { class: 'ck' }, water, ' Surfing or fishing'),
+      el('label', { class: 'cfull csafari' }, el('span', { text: 'Great Marsh (Safari Ball only)' }), marsh)),
+    out,
+    el('p', { class: 'sub cfoot', text: `Uses Platinum's own catch formula. Its HP IV is unknown, so the odds are averaged over all 32. Repeat Ball counts as ×3 once you've marked ${BY.get(id).n} caught. Each bait makes it easier to catch (and more likely to flee); mud does the opposite.` }));
+}
+
 function openDrawer(id) {
   drawerId = id; lastFocus = lastFocus || document.activeElement;
   const d = BY.get(id), got = isGot(id);
@@ -860,6 +955,7 @@ function openDrawer(id) {
     d.locs.length ? el('div', { class: 'dsec' }, el('h4', { text: `${isEvo ? 'Also catchable in Platinum' : 'Every place to catch it in Platinum'} (${d.locs.length})` }), el('div', { class: 'where' }, el('ul', {}, d.locs.map(l => locLi(l, d.id)))))
       : (isEvo || d.c === 'Wild' ? null : el('div', { class: 'dsec' }, el('h4', { text: 'Where' }), whereList(d.w))),
     isEvo || !d.locs.length || !d.w.includes(' · ') ? null : el('div', { class: 'dsec' }, el('h4', { text: 'Other ways' }), whereList(d.w.split(' · ').slice(1).join(' · '))),
+    catchSec(id),
     copies ? el('div', { class: 'dsec' }, el('h4', { text: 'Copies' }), el('p', { class: 'sub', text: `Catch or breed ${copies.length + 1}: one stays ${d.n}, the rest become ${copies.map(c => BY.get(c).n).join(', ')}. Track them on the Copies tab.` })) : null,
     fam,
     el('div', { class: 'dsec' }, el('h4', { text: 'Notes' }), note)].filter(Boolean));
