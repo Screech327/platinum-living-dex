@@ -355,3 +355,7 @@ textarea{width:100%;border-radius:var(--radius);border:1.5px solid var(--line);b
 .ctab tr.dim .cbar i{background:var(--line)}
 .cfoot{font-size:12px;margin:8px 0 0}
 @media (max-width:420px){.catch .ck{grid-column:1/-1}.ctab td:nth-child(2){width:34%}}
+.dtabs{display:flex;width:100%}
+.dtabs button{flex:1;justify-content:center;padding:8px 12px;font-size:14px}
+.dpanel{display:grid;gap:14px}
+.dpanel .catch{margin-top:-2px}

@@ -853,7 +853,7 @@ function ballList(id, lv, cr) {
     { n: 'Dusk Ball', m: CF.night ? 35 : 10, why: CF.night ? 'night / cave' : 'needs night or a cave' },
     { n: 'Net Ball', m: net ? 30 : 10, why: net ? 'Water/Bug' : 'not Water/Bug' },
     { n: 'Dive Ball', m: CF.water ? 35 : 10, why: CF.water ? 'on water' : 'needs surfing/fishing' },
-    { n: 'Nest Ball', m: nest, why: lv <= 30 ? 'low level' : 'only helps under Lv30' },
+    { n: 'Nest Ball', m: nest, why: lv < 30 ? 'low level' : 'only helps under Lv30' },
     { n: 'Repeat Ball', m: caught ? 30 : 10, why: caught ? 'you have one' : 'needs one already caught' },
     { n: 'Luxury / Premier / Heal', m: 10, why: 'same as Poké Ball' },
     { n: 'Safari Ball', m: 15, cr: Math.floor(cr * marsh[0] / marsh[1]), why: 'Great Marsh only' },
@@ -903,7 +903,7 @@ function catchSec(id) {
   [one, night, water].forEach(i => i.addEventListener('change', upd));
   upd();
   return el('div', { class: 'dsec catch' },
-    el('h4', { text: `Catch odds · catch rate ${cr}` }),
+    el('h4', { text: `Catch rate ${cr}` }),
     el('div', { class: 'cform' },
       el('label', {}, el('span', { text: 'Level' }), lvIn),
       el('label', {}, el('span', { text: 'Turn' }), turnIn),
@@ -918,6 +918,7 @@ function catchSec(id) {
     el('p', { class: 'sub cfoot', text: `Uses Platinum's own catch formula. Its HP IV is unknown, so the odds are averaged over all 32. Repeat Ball counts as ×3 once you've marked ${BY.get(id).n} caught. Each bait makes it easier to catch (and more likely to flee); mud does the opposite.` }));
 }
 
+let dTab = (() => { try { return localStorage.getItem('pld-dtab') === 'catch' ? 'catch' : 'info'; } catch (e) { return 'info'; } })();
 function openDrawer(id) {
   drawerId = id; lastFocus = lastFocus || document.activeElement;
   const d = BY.get(id), got = isGot(id);
@@ -937,12 +938,20 @@ function openDrawer(id) {
     const s = BY.get(src);
     steps = [`First get ${s.n} — ${s.c === 'Wild' ? 'catch it in Platinum' : 'source: ' + s.src} (tap it in the family below).`, ...d.steps];
   }
+  const tabs = el('div', { class: 'seg dtabs', role: 'tablist', 'aria-label': 'Details or catch odds' }, [['info', 'Details'], ['catch', 'Catch odds']].map(([k, t]) =>
+    el('button', { type: 'button', role: 'tab', 'aria-pressed': String(dTab === k), 'aria-selected': String(dTab === k), text: t, onclick: () => {
+      dTab = k; try { localStorage.setItem('pld-dtab', k); } catch (e) {}
+      [...tabs.children].forEach(b => { const on = b.textContent === t; b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-selected', String(on)); });
+      $$('#drawerBody .dpanel').forEach((p, i) => p.hidden = (i === 0) !== (k === 'info'));
+    } })));
   const body = $('#drawerBody');
   body.replaceChildren(...[
     el('button', { type: 'button', class: 'ghost dclose', text: 'Close ✕', onclick: closeDrawer }),
     el('div', { class: 'dhead' }, el('div', { class: 'big' }, el('img', { class: 'px', src: SPRITE(id), alt: d.n, width: 120, height: 120 })),
       el('div', {}, el('span', { class: 'num', text: '#' + pad(id) + ' · ' + regionOf(id) }), el('h3', { text: d.n }),
         el('div', { class: 'chips', style: 'margin-top:6px' }, chip(d.c), chip(TIERS[d.rank], 'tier' + d.rank), d.cp ? chip('catch ×' + d.cp, 'cp') : null))),
+    tabs,
+    el('div', { class: 'dpanel', hidden: dTab !== 'info' || null }, ...[
     el('label', { class: 'boxit' + (got ? ' got' : '') }, tick, got ? `Caught ${new Date(S.boxed[id]).toLocaleDateString()}` : 'Mark as caught'),
     got ? null : el('button', { type: 'button', class: 'evobtn' + (isEvoMark(id) ? ' on' : ''), onclick: () => setEvo(id, !isEvoMark(id)) }, isEvoMark(id) ? '⬆ Needs evolving — tap to clear' : '⬆ Mark as needs evolving'),
     SINBY.has(id) ? el('div', { class: 'dsec' }, el('h4', { text: `Sinnoh Dex #${String(SINBY.get(id).rn).padStart(3, '0')}` }),
@@ -959,10 +968,10 @@ function openDrawer(id) {
     d.locs.length ? el('div', { class: 'dsec' }, el('h4', { text: `${isEvo ? 'Also catchable in Platinum' : 'Every place to catch it in Platinum'} (${d.locs.length})` }), el('div', { class: 'where' }, el('ul', {}, d.locs.map(l => locLi(l, d.id)))))
       : (isEvo || d.c === 'Wild' ? null : el('div', { class: 'dsec' }, el('h4', { text: 'Where' }), whereList(d.w))),
     isEvo || !d.locs.length || !d.w.includes(' · ') ? null : el('div', { class: 'dsec' }, el('h4', { text: 'Other ways' }), whereList(d.w.split(' · ').slice(1).join(' · '))),
-    catchSec(id),
     copies ? el('div', { class: 'dsec' }, el('h4', { text: 'Copies' }), el('p', { class: 'sub', text: `Catch or breed ${copies.length + 1}: one stays ${d.n}, the rest become ${copies.map(c => BY.get(c).n).join(', ')}. Track them on the Copies tab.` })) : null,
     fam,
-    el('div', { class: 'dsec' }, el('h4', { text: 'Notes' }), note)].filter(Boolean));
+    el('div', { class: 'dsec' }, el('h4', { text: 'Notes' }), note)].filter(Boolean)),
+    el('div', { class: 'dpanel', hidden: dTab !== 'catch' || null }, catchSec(id))].filter(Boolean));
   $('#scrim').hidden = false;
   const dr = $('#drawer'); dr.classList.add('open'); dr.setAttribute('aria-hidden', 'false'); dr.scrollTop = 0; dr.focus({ preventScroll: true });
 }
