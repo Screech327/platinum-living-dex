@@ -884,6 +884,10 @@ function catchSec(id) {
     hpIn.disabled = CF.one; hpLbl.textContent = CF.one ? '1 HP' : CF.hp + '%';
     const mid = hpAt(base, lv, 15);
     hpNote.textContent = CF.one ? '' : `about ${Math.max(1, Math.round(mid * CF.hp / 100))} of ${mid} HP`;
+    // in-game bar colours (App_BarColor): green above 1/2, yellow above 1/5, red at 1/5 or less
+    const fill = CF.one ? 100 / mid : CF.hp;
+    hpIn.style.setProperty('--hpp', Math.max(1.5, fill) + '%');
+    hpIn.dataset.c = fill > 50 ? 'g' : fill > 20 ? 'y' : 'r';
     const rows = ballList(id, lv, cr).map(b => ({ ...b, p: catchAvg(b.cr != null ? b.cr : cr, b.m, base, lv) }));
     rows.sort((a, b) => b.p - a.p);
     const best = rows[0].p;
