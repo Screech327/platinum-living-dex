@@ -21,8 +21,8 @@ const el = (tag, attrs = {}, ...kids) => {
 const img = (id, cls = 'px') => el('img', { class: cls, src: SPRITE(id), alt: '', loading: 'lazy', decoding: 'async', width: 64, height: 64 });
 
 /* ---------------- state ---------------- */
-let S = { boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {}, evo: {} };
-const fresh = () => ({ boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {}, evo: {} });
+let S = { boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {}, evo: {}, breed: {} };
+const fresh = () => ({ boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {}, evo: {}, breed: {} });
 
 let storageOK = true;
 function load() {
@@ -31,7 +31,7 @@ function load() {
   initMt();
 }
 /* change tracking: every key in these sections gets a modified-time in S.mt, so two devices can merge (newest wins per Pokémon) */
-const SECS = ['boxed', 'seen', 'have', 'notes', 'timers', 'evo'];
+const SECS = ['boxed', 'seen', 'have', 'notes', 'timers', 'evo', 'breed'];
 let LAST = {}, MTREF = {};
 const snap = () => { const o = {}; for (const sec of SECS) for (const [k, v] of Object.entries(S[sec] || {})) o[sec + ':' + k] = JSON.stringify(v); return o; };
 function stamp() {
@@ -54,6 +54,8 @@ function save() {
 const isGot = id => !!S.boxed[id];
 const isEvoMark = id => !isGot(id) && !!(S.evo && S.evo[id]);
 const evoIds = () => Object.keys(S.evo || {}).map(Number).filter(isEvoMark).sort((a, b) => a - b);
+const isBreedMark = id => !isGot(id) && !!(S.breed && S.breed[id]);
+function setBreed(id, on) { S.breed = S.breed || {}; if (on) S.breed[id] = Date.now(); else delete S.breed[id]; save(); toast(on ? `${BY.get(id).n} marked: needs breeding` : `${BY.get(id).n}: breed mark removed`); refresh(); if (drawerId === id) openDrawer(id); }
 function setEvo(id, on) { if (on) S.evo[id] = Date.now(); else delete S.evo[id]; save(); toast(on ? `${BY.get(id).n} marked: needs evolving` : `${BY.get(id).n}: evolve mark removed`); refresh(); if (drawerId === id) openDrawer(id); }
 const gotCount = () => Object.keys(S.boxed).length;
 
@@ -126,7 +128,7 @@ function confetti() {
 const MILESTONES = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 484, 493];
 function setGot(id, on) {
   const before = gotCount();
-  if (on) { S.boxed[id] = Date.now(); if (SINBY.has(id)) S.seen[id] = S.seen[id] || Date.now(); if (S.evo[id]) delete S.evo[id]; } else delete S.boxed[id];
+  if (on) { S.boxed[id] = Date.now(); if (SINBY.has(id)) S.seen[id] = S.seen[id] || Date.now(); if (S.evo[id]) delete S.evo[id]; if (S.breed && S.breed[id]) delete S.breed[id]; } else delete S.boxed[id];
   save(); publish(on ? 'caught' : 'uncaught', id);
   const d = BY.get(id), n = gotCount();
   toast(on ? `${d.n} caught! ${n}/493` : `${d.n} unchecked`);
@@ -193,7 +195,7 @@ function renderGrid() {
   let shown = 0;
   for (const d of DEX) {
     const { li, tick } = cards.get(d.id), got = isGot(d.id), ok = matches(d);
-    tick.checked = got; li.classList.toggle('got', got); li.classList.toggle('evo', isEvoMark(d.id)); li.hidden = !ok; if (ok) shown++;
+    tick.checked = got; li.classList.toggle('got', got); li.classList.toggle('evo', isEvoMark(d.id)); li.classList.toggle('breed', isBreedMark(d.id)); li.hidden = !ok; if (ok) shown++;
   }
   $('#noRes').hidden = shown > 0;
   $('#resultLine').textContent = shown === 493 ? 'Showing all 493 — tap a card for details, tap the box to mark it caught.' : `Showing ${shown} of 493`;
@@ -213,6 +215,7 @@ let box = 1, boxHit = null;
 let boxMode = (() => { try { return localStorage.getItem('pld-boxmode') || 'view'; } catch (e) { return 'view'; } })();
 function slotTap(i) {
   if (boxMode === 'evo') { if (isGot(i)) { toast(`${BY.get(i).n} is already caught`); return; } setEvo(i, !S.evo[i]); }
+  else if (boxMode === 'breed') { if (isGot(i)) { toast(`${BY.get(i).n} is already caught`); return; } setBreed(i, !(S.breed && S.breed[i])); }
   else if (boxMode === 'got') { setGot(i, !isGot(i)); refresh(); }
   else openDrawer(i);
 }
@@ -228,9 +231,10 @@ function renderBoxes() {
   for (let i = start; i < start + 30; i++) {
     if (i > 493) { pc.append(el('div', { class: 'slot blank' })); continue; }
     const d = BY.get(i);
-    const ev = isEvoMark(i);
-    pc.append(el('button', { type: 'button', class: 'slot' + (isGot(i) ? ' got' : '') + (ev ? ' evo' : '') + (i === boxHit ? ' hit' : ''), title: `#${pad(i)} ${d.n}${ev ? ' — needs evolving' : ''}`, 'aria-label': `#${pad(i)} ${d.n}${isGot(i) ? ', caught' : ev ? ', needs evolving' : ''}`, onclick: () => slotTap(i) },
-      el('span', { class: 'sn', text: pad(i) }), img(i), ev ? el('span', { class: 'evtag', text: 'EVO' }) : null));
+    const ev = isEvoMark(i), br = isBreedMark(i);
+    const marks = [ev ? 'needs evolving' : '', br ? 'needs breeding' : ''].filter(Boolean).join(', ');
+    pc.append(el('button', { type: 'button', class: 'slot' + (isGot(i) ? ' got' : '') + (ev ? ' evo' : '') + (br ? ' breed' : '') + (i === boxHit ? ' hit' : ''), title: `#${pad(i)} ${d.n}${marks ? ' — ' + marks : ''}`, 'aria-label': `#${pad(i)} ${d.n}${isGot(i) ? ', caught' : marks ? ', ' + marks : ''}`, onclick: () => slotTap(i) },
+      el('span', { class: 'sn', text: pad(i) }), img(i), ev ? el('span', { class: 'evtag', text: 'EVO' }) : null, br ? el('span', { class: 'brtag', text: 'BREED' }) : null));
   }
   const dots = $('#boxDots'); dots.replaceChildren();
   for (let b = 1; b <= 17; b++) {
@@ -611,7 +615,7 @@ const DEVICE = (() => { try { let d = localStorage.getItem('pld-device'); if (!d
 let syncBusy = false, syncAgain = false, syncT, es2 = null, syncErr = '';
 const gh = (path, opt = {}) => fetch('https://api.github.com' + path, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + SY.token, Accept: 'application/vnd.github+json' }, opt.headers || {}) }))
   .then(async r => { if (!r.ok) { const e = new Error(r.status === 401 ? 'GitHub rejected the key — make a new one' : r.status === 404 ? 'Sync file not found' : 'GitHub error ' + r.status); e.status = r.status; throw e; } return r.json(); });
-const payload = () => JSON.stringify({ app: 'platinum-living-dex', v: 2, saved: new Date().toISOString(), boxed: S.boxed, seen: S.seen, have: S.have, notes: S.notes, timers: S.timers, evo: S.evo, mt: S.mt });
+const payload = () => JSON.stringify({ app: 'platinum-living-dex', v: 2, saved: new Date().toISOString(), boxed: S.boxed, seen: S.seen, have: S.have, notes: S.notes, timers: S.timers, evo: S.evo, breed: S.breed, mt: S.mt });
 function merge(R) {
   if (!R || !R.mt) return { changed: false, localNewer: true };
   let changed = false, localNewer = false;
@@ -798,7 +802,7 @@ function renderMapPanel() {
     const elsewhere = new Map();
     subs.forEach(([lab, ss], i) => { if (i !== mapSub && lab !== 'Honey tree') ss.forEach(([, rows]) => rows.forEach(r => { if (!here.has(r[0]) && !elsewhere.has(r[0])) elsewhere.set(r[0], i); })); });
     other = el('div', { class: 'otherparts' }, el('span', { text: `${mapLoc} has ${subs.length} parts — use the buttons above to switch.` + (elsewhere.size ? ' Only in another part:' : '') }),
-      ...[...elsewhere].map(([id, i]) => el('button', { type: 'button', class: 'opchip' + (isGot(id) ? ' got' : '') + (isEvoMark(id) ? ' evo' : ''), onclick: () => { mapSub = i; mapHi = id; renderMapPanel(); } }, img(id), BY.get(id).n)));
+      ...[...elsewhere].map(([id, i]) => el('button', { type: 'button', class: 'opchip' + (isGot(id) ? ' got' : '') + (isEvoMark(id) ? ' evo' : '') + (isBreedMark(id) ? ' breed' : ''), onclick: () => { mapSub = i; mapHi = id; renderMapPanel(); } }, img(id), BY.get(id).n)));
   }
   const TL = ['Morning', 'Day', 'Night'];
   const ONE = new Set(['Gift', 'Egg gift', 'One-time encounter', 'In-game trade']);
@@ -807,18 +811,18 @@ function renderMapPanel() {
   const tables = secs.map(([sec, rows]) => {
     if (ONE.has(sec)) return el('table', { class: 'enc' }, el('caption', { text: sec }),
       el('thead', {}, el('tr', {}, el('th', { text: 'Pokémon' }), el('th', { text: 'Lv' }))),
-      el('tbody', {}, rows.map(([id, , , , lo, hi, note]) => el('tr', { class: (isGot(id) ? 'got ' : '') + (isEvoMark(id) ? 'evo ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note), el('td', { class: 'r', text: lvText(lo, hi) })))));
+      el('tbody', {}, rows.map(([id, , , , lo, hi, note]) => el('tr', { class: (isGot(id) ? 'got ' : '') + (isEvoMark(id) ? 'evo ' : '') + (isBreedMark(id) ? 'breed ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note), el('td', { class: 'r', text: lvText(lo, hi) })))));
     const vary = rows.some(r => r[1] !== r[2] || r[2] !== r[3]);
     return el('table', { class: 'enc' }, el('caption', { text: sec }),
       el('thead', {}, el('tr', {}, el('th', { text: 'Pokémon' }), ...(vary ? TL.map((t, i) => el('th', { class: i === mapTime ? 'now' : '', text: t.slice(0, 3) })) : [el('th', { text: 'Rate' })]), el('th', { text: 'Lv' }))),
       el('tbody', {}, rows.map(([id, m, d, n, lo, hi, note]) => {
         const rates = [m, d, n];
-        return el('tr', { class: (isGot(id) ? 'got ' : '') + (isEvoMark(id) ? 'evo ' : '') + (vary && rates[mapTime] === 0 ? 'dim ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note),
+        return el('tr', { class: (isGot(id) ? 'got ' : '') + (isEvoMark(id) ? 'evo ' : '') + (isBreedMark(id) ? 'breed ' : '') + (vary && rates[mapTime] === 0 ? 'dim ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note),
           ...(vary ? rates.map((r, i) => el('td', { class: 'r' + (i === mapTime ? ' now' : '') + (r === 0 ? ' zero' : ''), text: r ? r + '%' : '—' })) : [el('td', { class: 'r', text: m + '%' })]),
           el('td', { class: 'r', text: lvText(lo, hi) }));
       })));
   });
-  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...(other ? [other] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dongle rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' + (tables.some(t => t.querySelector('tr.evo')) ? ' Yellow dot = marked as needs evolving.' : '') }));
+  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...(other ? [other] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dongle rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' + (tables.some(t => t.querySelector('tr.evo')) ? ' Yellow dot = marked as needs evolving.' : '') + (tables.some(t => t.querySelector('tr.breed')) ? ' Pink dot = marked as needs breeding.' : '') }));
 }
 
 /* ---------------- drawer ---------------- */
@@ -962,7 +966,9 @@ function openDrawer(id) {
     tabs,
     el('div', { class: 'dpanel', hidden: dTab !== 'info' || null }, ...[
     el('label', { class: 'boxit' + (got ? ' got' : '') }, tick, got ? `Caught ${new Date(S.boxed[id]).toLocaleDateString()}` : 'Mark as caught'),
-    got ? null : el('button', { type: 'button', class: 'evobtn' + (isEvoMark(id) ? ' on' : ''), onclick: () => setEvo(id, !isEvoMark(id)) }, isEvoMark(id) ? '⬆ Needs evolving — tap to clear' : '⬆ Mark as needs evolving'),
+    got ? null : el('div', { class: 'markrow' },
+      el('button', { type: 'button', class: 'evobtn' + (isEvoMark(id) ? ' on' : ''), onclick: () => setEvo(id, !isEvoMark(id)) }, isEvoMark(id) ? '✓ Needs evolving' : '⬆ Needs evolving'),
+      el('button', { type: 'button', class: 'brbtn' + (isBreedMark(id) ? ' on' : ''), onclick: () => setBreed(id, !isBreedMark(id)) }, isBreedMark(id) ? '✓ Needs breeding' : '♥ Needs breeding')),
     SINBY.has(id) ? el('div', { class: 'dsec' }, el('h4', { text: `Sinnoh Dex #${String(SINBY.get(id).rn).padStart(3, '0')}` }),
       el('div', { class: 'row' },
         el('button', { type: 'button', class: isSeen(id) ? '' : 'ghost', text: isSeen(id) ? '👁 Seen' : '👁 Mark seen', onclick: () => setSeen(id, !isSeen(id)) }),

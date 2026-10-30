@@ -360,3 +360,23 @@ textarea{width:100%;border-radius:var(--radius);border:1.5px solid var(--line);b
 .dpanel{display:grid;gap:14px}
 .dpanel .catch{margin-top:-2px}
 .enc tr.evo .mn::after,.opchip.evo::after{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:#f2b705;box-shadow:0 0 0 2px rgb(242 183 5 / .25);margin-left:7px;vertical-align:middle}
+/* needs breeding (pink) */
+.slot.breed{background:#ffe3f1;border:2px solid #ec4899}
+.slot.breed img{filter:none;opacity:.9}
+.slot.evo.breed{background:linear-gradient(135deg,#fff4c2 50%,#ffe3f1 50%);border-color:#f2b705 #ec4899 #ec4899 #f2b705}
+.slot .brtag{position:absolute;left:2px;bottom:2px;font:700 8.5px var(--pixel);background:#ec4899;color:#fff;border-radius:4px;padding:1px 3px}
+.slot.evo.breed .evtag{bottom:14px}
+.card.breed{background:#ffe3f1;border-color:#ec4899}
+.card.evo.breed{background:linear-gradient(135deg,#fff4c2 50%,#ffe3f1 50%)}
+.markrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.markrow .evobtn{margin-top:0}
+.brbtn{width:100%;justify-content:center;background:var(--surface);color:#b0186a;border:1.5px dashed #ec4899}
+.brbtn.on{background:#ffe3f1;border-style:solid;color:#8a1053}
+.enc tr.breed .mn::after,.opchip.breed::after{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:#ec4899;box-shadow:0 0 0 2px rgb(236 72 153 / .25);margin-left:7px;vertical-align:middle}
+.enc tr.evo.breed .mn::after,.opchip.evo.breed::after{background:linear-gradient(90deg,#f2b705 50%,#ec4899 50%);box-shadow:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .slot.breed,:root:not([data-theme="light"]) .card.breed{background:#3d1430}
+:root:not([data-theme="light"]) .slot.evo.breed,:root:not([data-theme="light"]) .card.evo.breed{background:linear-gradient(135deg,#3d3100 50%,#3d1430 50%)}
+:root:not([data-theme="light"]) .brbtn{color:#ff8cc6}:root:not([data-theme="light"]) .brbtn.on{background:#3d1430;color:#ffb3d9}}
+:root[data-theme="dark"] .slot.breed,:root[data-theme="dark"] .card.breed{background:#3d1430}
+:root[data-theme="dark"] .slot.evo.breed,:root[data-theme="dark"] .card.evo.breed{background:linear-gradient(135deg,#3d3100 50%,#3d1430 50%)}
+:root[data-theme="dark"] .brbtn{color:#ff8cc6}:root[data-theme="dark"] .brbtn.on{background:#3d1430;color:#ffb3d9}
