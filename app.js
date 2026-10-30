@@ -64,14 +64,23 @@ const regionOf = id => REGIONS.find(r => id >= r[1] && id <= r[2])[0];
 const EVOISH = d => d.c === 'Evolve' || d.c === 'Trade evolution';
 const alsoVia = (d, re) => d.c !== 'Wild' && (d.locs || []).some(l => re.test(l));
 const ALSO_METHOD = { 'Dongle': /^Dongle \(/, 'Poké Radar': /^Poké Radar:/, 'Swarm': /^Swarm:/, 'Trophy Garden': /^Trophy Garden/, 'Great Marsh (daily)': /^Great Marsh rotation:/, 'Honey tree': /^Honey trees:/ };
-const methodMatch = (d, m) => d.c === m || (ALSO_METHOD[m] ? alsoVia(d, ALSO_METHOD[m]) : false);
+// dongle slots count even for Pokémon that are also normal wild catches, so the per-game dongle list is complete
+const methodMatch = (d, m) => d.c === m || (m === 'Dongle' ? (d.locs || []).some(l => ALSO_METHOD.Dongle.test(l)) : ALSO_METHOD[m] ? alsoVia(d, ALSO_METHOD[m]) : false);
+// which other carts a source string names (combined names like "HG/SS" or "R/S/E" count for each game)
+function srcGames(src) {
+  const out = new Set(), add = (...k) => k.forEach(x => out.add(x));
+  let t = src;
+  [[/Any Gen 3/g, ['FR', 'LG', 'R', 'S', 'E']], [/HG\/SS/g, ['HG', 'SS']], [/FireRed\/LeafGreen|FR\/LG/g, ['FR', 'LG']], [/Ruby\/Sapphire\/Emerald|R\/S\/E/g, ['R', 'S', 'E']],
+   [/Diamond\/Pearl|D\/P/g, ['D', 'P']], [/HeartGold/g, ['HG']], [/SoulSilver/g, ['SS']], [/FireRed/g, ['FR']], [/LeafGreen/g, ['LG']], [/Ruby/g, ['R']], [/Sapphire/g, ['S']],
+   [/Emerald/g, ['E']], [/Diamond/g, ['D']], [/Pearl/g, ['P']]].forEach(([re, k]) => { if (re.test(t)) { add(...k); t = t.replace(re, ' '); } });
+  return out;
+}
 const GAMES = [
   { name: 'Platinum', note: 'Everything you catch, evolve or breed on the Platinum cart itself.', test: d => d.tr === 'Native to Platinum' && d.c !== 'EVENT' && !/Diamond|Pearl|HG\/SS|HeartGold|SoulSilver|FireRed|LeafGreen|R\/S\/E|Ruby|Sapphire|Emerald|Gen 3/.test(d.src) },
-  { name: 'Diamond', note: 'Murkrow and Stunky, plus fallbacks for Clamperl, Trapinch, Seel and the Skull Fossil. Trade to Platinum.', test: d => /Diamond|D\/P/.test(d.src) },
-  { name: 'Pearl', note: 'Misdreavus and Glameow, plus fallbacks for Clamperl, Trapinch, Spheal and the Armor Fossil. Trade to Platinum.', test: d => /Pearl|D\/P/.test(d.src) },
-  { name: 'HeartGold / SoulSilver', note: 'Legendaries, starters and Snorlax — and Pal Park with no daily limit. Trade to Platinum.', test: d => /HG\/SS|HeartGold|SoulSilver/.test(d.src) },
-  { name: 'FireRed / LeafGreen', note: 'Dongle spawns (cart in the GBA slot) and Pal Park sources like Kanto starters and Snorlax.', test: d => /FireRed|LeafGreen|FR\/LG|Any Gen 3/.test(d.src) || alsoVia(d, /^Dongle \((FireRed|LeafGreen)/) },
-  { name: 'Ruby / Sapphire / Emerald', note: 'Dongle spawns and the Gen 3 legendaries via Pal Park.', test: d => /Ruby|Sapphire|Emerald|R\/S\/E|Any Gen 3/.test(d.src) || alsoVia(d, /^Dongle \((Ruby|Sapphire|Emerald)/) },
+  { name: 'Diamond', note: 'Murkrow and Stunky, plus fallbacks for Clamperl, Trapinch, Seel and the Skull Fossil. Trade to Platinum.', test: d => srcGames(d.src).has('D') },
+  { name: 'Pearl', note: 'Misdreavus and Glameow, plus fallbacks for Clamperl, Trapinch, Spheal and the Armor Fossil. Trade to Platinum.', test: d => srcGames(d.src).has('P') },
+  ...[['HeartGold', 'HG'], ['SoulSilver', 'SS']].map(([n, k]) => ({ name: n, note: `${n} sources: Johto/Kanto legendaries, starters and Snorlax, plus Pal Park with no daily limit. Trade to Platinum.`, test: d => srcGames(d.src).has(k) })),
+  ...[['FireRed', 'FR'], ['LeafGreen', 'LG'], ['Ruby', 'R'], ['Sapphire', 'S'], ['Emerald', 'E']].map(([n, k]) => ({ name: n, note: `Dongle spawns with ${n} in the GBA slot (after the National Dex), plus anything you bring over through Pal Park.`, test: d => srcGames(d.src).has(k) || (d.locs || []).some(l => l.startsWith(`Dongle (${n} `)) })),
   { name: 'Spin-offs', note: 'Pokémon Ranger (Manaphy → Phione) and My Pokémon Ranch on Wii (Mew, Phione).', test: d => d.c === 'Spin-off' },
   { name: 'Events', note: 'Event-only. Fan-run WFC servers still hand these out.', test: d => d.c === 'EVENT' },
 ];
