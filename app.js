@@ -188,6 +188,7 @@ function matches(d) {
   const m = $('#fMethod').value; if (m && !methodMatch(d, m)) return false;
   const t = $('#fTier').value; if (t !== '' && d.rank !== +t) return false;
   const g = $('#fGame').value; if (g !== '' && !GAMES[+g].test(d)) return false;
+  const tod = $('#fTod').value; if (tod !== '' && TOD.get(d.id) !== +tod) return false;
   const r = $('#fRegion').value; if (r && regionOf(d.id) !== r) return false;
   return true;
 }
@@ -203,9 +204,10 @@ function renderGrid() {
 function initFilters() {
   [...new Set(DEX.map(d => d.c))].forEach(m => $('#fMethod').append(new Option(m, m)));
   TIERS.forEach((t, i) => $('#fTier').append(new Option(t, i)));
+  TOD_OPTS.filter(([v]) => [...TOD.values()].includes(v)).forEach(([v, t]) => $('#fTod').append(new Option(t, v)));
   GAMES.forEach((g, i) => $('#fGame').append(new Option(g.name, i)));
   REGIONS.forEach(r => $('#fRegion').append(new Option(r[0], r[0])));
-  ['#q', '#fMethod', '#fTier', '#fGame', '#fRegion'].forEach(s => $(s).addEventListener(s === '#q' ? 'input' : 'change', renderGrid));
+  ['#q', '#fMethod', '#fTier', '#fTod', '#fGame', '#fRegion'].forEach(s => $(s).addEventListener(s === '#q' ? 'input' : 'change', renderGrid));
   $('#qClear').addEventListener('click', () => { $('#q').value = ''; renderGrid(); $('#q').focus(); });
   $$('[data-show]').forEach(b => b.addEventListener('click', () => { show = b.dataset.show; $$('[data-show]').forEach(x => x.setAttribute('aria-pressed', x === b)); renderGrid(); }));
 }
@@ -705,6 +707,13 @@ function initSync() {
 
 /* ---------------- MAP view ---------------- */
 const MAP = new Map((window.MAPDATA || []).map(([loc, subs]) => [loc, subs]));
+// time-of-day mask per species from Platinum's encounter tables: 1 morning (4am–10am), 2 day (10am–8pm), 4 night (8pm–4am)
+const TOD = new Map();
+for (const [, subs] of window.MAPDATA || []) for (const [, secs] of subs) for (const [sec, rows] of secs) for (const r of rows) {
+  const m = /^(Gift|Egg gift|One-time encounter|In-game trade)$/.test(sec) || !(r[1] || r[2] || r[3]) ? 7 : (r[1] ? 1 : 0) | (r[2] ? 2 : 0) | (r[3] ? 4 : 0); // rate-less rows (Feebas tiles) aren't time-limited
+  TOD.set(r[0], (TOD.get(r[0]) || 0) | m);
+}
+const TOD_OPTS = [[4, 'Only at night (8pm–4am)'], [1, 'Only in the morning (4am–10am)'], [2, 'Only during the day (10am–8pm)'], [3, 'Morning or day — not night'], [6, 'Day or night — not morning'], [5, 'Morning or night — not day']];
 const MAPNOTE = new Map((window.MAPDATA || []).map(([loc, , note]) => [loc, note || '']));
 const MAP_NAMES = [...MAP.keys()].sort((a, b) => b.length - a.length);
 const subHas = (secs, id) => secs.some(([, rows]) => rows.some(r => r[0] === id));
