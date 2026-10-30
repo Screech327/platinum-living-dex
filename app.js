@@ -798,7 +798,7 @@ function renderMapPanel() {
     const elsewhere = new Map();
     subs.forEach(([lab, ss], i) => { if (i !== mapSub && lab !== 'Honey tree') ss.forEach(([, rows]) => rows.forEach(r => { if (!here.has(r[0]) && !elsewhere.has(r[0])) elsewhere.set(r[0], i); })); });
     other = el('div', { class: 'otherparts' }, el('span', { text: `${mapLoc} has ${subs.length} parts — use the buttons above to switch.` + (elsewhere.size ? ' Only in another part:' : '') }),
-      ...[...elsewhere].map(([id, i]) => el('button', { type: 'button', class: 'opchip' + (isGot(id) ? ' got' : ''), onclick: () => { mapSub = i; mapHi = id; renderMapPanel(); } }, img(id), BY.get(id).n)));
+      ...[...elsewhere].map(([id, i]) => el('button', { type: 'button', class: 'opchip' + (isGot(id) ? ' got' : '') + (isEvoMark(id) ? ' evo' : ''), onclick: () => { mapSub = i; mapHi = id; renderMapPanel(); } }, img(id), BY.get(id).n)));
   }
   const TL = ['Morning', 'Day', 'Night'];
   const ONE = new Set(['Gift', 'Egg gift', 'One-time encounter', 'In-game trade']);
@@ -807,18 +807,18 @@ function renderMapPanel() {
   const tables = secs.map(([sec, rows]) => {
     if (ONE.has(sec)) return el('table', { class: 'enc' }, el('caption', { text: sec }),
       el('thead', {}, el('tr', {}, el('th', { text: 'Pokémon' }), el('th', { text: 'Lv' }))),
-      el('tbody', {}, rows.map(([id, , , , lo, hi, note]) => el('tr', { class: (isGot(id) ? 'got ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note), el('td', { class: 'r', text: lvText(lo, hi) })))));
+      el('tbody', {}, rows.map(([id, , , , lo, hi, note]) => el('tr', { class: (isGot(id) ? 'got ' : '') + (isEvoMark(id) ? 'evo ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note), el('td', { class: 'r', text: lvText(lo, hi) })))));
     const vary = rows.some(r => r[1] !== r[2] || r[2] !== r[3]);
     return el('table', { class: 'enc' }, el('caption', { text: sec }),
       el('thead', {}, el('tr', {}, el('th', { text: 'Pokémon' }), ...(vary ? TL.map((t, i) => el('th', { class: i === mapTime ? 'now' : '', text: t.slice(0, 3) })) : [el('th', { text: 'Rate' })]), el('th', { text: 'Lv' }))),
       el('tbody', {}, rows.map(([id, m, d, n, lo, hi, note]) => {
         const rates = [m, d, n];
-        return el('tr', { class: (isGot(id) ? 'got ' : '') + (vary && rates[mapTime] === 0 ? 'dim ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note),
+        return el('tr', { class: (isGot(id) ? 'got ' : '') + (isEvoMark(id) ? 'evo ' : '') + (vary && rates[mapTime] === 0 ? 'dim ' : '') + (id === mapHi ? 'hl' : '') }, monCell(id, note),
           ...(vary ? rates.map((r, i) => el('td', { class: 'r' + (i === mapTime ? ' now' : '') + (r === 0 ? ' zero' : ''), text: r ? r + '%' : '—' })) : [el('td', { class: 'r', text: m + '%' })]),
           el('td', { class: 'r', text: lvText(lo, hi) }));
       })));
   });
-  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...(other ? [other] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dongle rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' }));
+  P.replaceChildren(...head, ...(subBtns ? [subBtns] : []), ...(other ? [other] : []), ...tables, el('p', { class: 'sub', style: 'font-size:12px', text: 'Rates and levels come straight from Platinum\'s game data. Rates are the chance per encounter. Swarm, Poké Radar and dongle rows take over some of the normal slots while they are active. Tap a Pokémon for full details.' + (tables.some(t => t.querySelector('tr.evo')) ? ' Yellow dot = marked as needs evolving.' : '') }));
 }
 
 /* ---------------- drawer ---------------- */

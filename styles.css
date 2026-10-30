@@ -359,3 +359,4 @@ textarea{width:100%;border-radius:var(--radius);border:1.5px solid var(--line);b
 .dtabs button{flex:1;justify-content:center;padding:8px 12px;font-size:14px}
 .dpanel{display:grid;gap:14px}
 .dpanel .catch{margin-top:-2px}
+.enc tr.evo .mn::after,.opchip.evo::after{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:#f2b705;box-shadow:0 0 0 2px rgb(242 183 5 / .25);margin-left:7px;vertical-align:middle}
