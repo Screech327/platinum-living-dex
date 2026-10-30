@@ -40,7 +40,7 @@ img.px{image-rendering:pixelated}
 h1{font-family:var(--display);font-size:22px;margin:0;letter-spacing:.02em;line-height:1.1}
 h2{font-family:var(--display);font-size:18px;margin:24px 0 4px;letter-spacing:.02em}
 .count{margin:2px 0 0;color:var(--muted);font-variant-numeric:tabular-nums}
-.count b{color:var(--fg);font-family:var(--pixel);font-weight:400;font-size:17px}
+.count b{color:var(--fg);font-family:var(--pixel);font-weight:400;font-size:16px}
 .sep{opacity:.5}
 .sub{color:var(--muted);margin:0 0 12px;max-width:68ch}
 .hint{color:var(--muted);font-size:13px;text-align:center}
@@ -79,7 +79,7 @@ select{font-size:13px;padding:6px 10px;border-radius:999px;border:1.5px solid va
 .card:not(.got) .spr img{filter:saturate(.85)}
 .card .info{min-width:0;display:grid;gap:3px}
 .card .l1{display:flex;gap:6px;align-items:baseline;min-width:0}
-.num{font-family:var(--pixel);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.num{font-family:var(--pixel);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .nm{font-weight:600;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chips{display:flex;gap:4px;flex-wrap:wrap}
 .chip{font-size:10.5px;font-weight:600;letter-spacing:.02em;padding:1px 7px;border-radius:999px;background:var(--surface-2);color:var(--fg);white-space:nowrap}
@@ -195,7 +195,7 @@ textarea{width:100%;border-radius:var(--radius);border:1.5px solid var(--line);b
 /* sinnoh dex */
 .sinhead{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:2px 8px}
-.stat b{font-family:var(--pixel);font-weight:400;font-size:26px;font-variant-numeric:tabular-nums}
+.stat b{font-family:var(--pixel);font-weight:400;font-size:24px;font-variant-numeric:tabular-nums}
 .stat span{color:var(--muted);font-size:13px}
 .stat .bar{grid-column:1/-1;display:block;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 .stat .bar i{display:block;height:100%;background:var(--accent);transition:width .4s;width:0}
@@ -380,3 +380,49 @@ textarea{width:100%;border-radius:var(--radius);border:1.5px solid var(--line);b
 :root[data-theme="dark"] .slot.breed,:root[data-theme="dark"] .card.breed{background:#3d1430}
 :root[data-theme="dark"] .slot.evo.breed,:root[data-theme="dark"] .card.evo.breed{background:linear-gradient(135deg,#3d3100 50%,#3d1430 50%)}
 :root[data-theme="dark"] .brbtn{color:#ff8cc6}:root[data-theme="dark"] .brbtn.on{background:#3d1430;color:#ffb3d9}
+
+/* ---------- look: Distortion World banner, type colours, softer backdrop ---------- */
+body{background-image:radial-gradient(70rem 36rem at 100% -10%,var(--glow-a),transparent 70%),radial-gradient(60rem 30rem at -10% 110%,var(--glow-b),transparent 70%);background-attachment:fixed}
+:root{--glow-a:rgb(122 86 214 / .13);--glow-b:rgb(226 178 60 / .10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--glow-a:rgb(122 86 214 / .22);--glow-b:rgb(226 178 60 / .07)}}
+:root[data-theme="dark"]{--glow-a:rgb(122 86 214 / .22);--glow-b:rgb(226 178 60 / .07)}
+.toolbar{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+@media (min-width:701px){.tabs{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}}
+
+/* the banner: Giratina's dusk over a warped floor */
+.top{position:relative;isolation:isolate;overflow:hidden;margin-top:12px;margin-bottom:6px;padding:18px 20px;border-radius:20px;color:#eef0f8;
+  background:radial-gradient(90% 160% at 88% -30%,rgb(166 104 238 / .75),transparent 60%),radial-gradient(60% 120% at 0% 120%,rgb(226 178 60 / .28),transparent 60%),linear-gradient(120deg,#1b2046 0%,#2a1d55 55%,#3a1840 100%);
+  box-shadow:0 1px 0 rgb(255 255 255 / .08) inset,0 10px 30px -14px rgb(42 29 85 / .7)}
+.top::before{content:"";position:absolute;inset:auto 0 0 0;height:85%;z-index:-1;background:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 160" preserveAspectRatio="none"%3E%3Cg fill="none" stroke="%23fff" stroke-width="1"%3E%3Cline x1="300" y1="-140" x2="-540" y2="160"/%3E%3Cline x1="300" y1="-140" x2="-480" y2="160"/%3E%3Cline x1="300" y1="-140" x2="-420" y2="160"/%3E%3Cline x1="300" y1="-140" x2="-360" y2="160"/%3E%3Cline x1="300" y1="-140" x2="-300" y2="160"/%3E%3Cline x1="300" y1="-140" x2="-240" y2="160"/%3E%3Cline x1="300" y1="-140" x2="-180" y2="160"/%3E%3Cline x1="300" y1="-140" x2="-120" y2="160"/%3E%3Cline x1="300" y1="-140" x2="-60" y2="160"/%3E%3Cline x1="300" y1="-140" x2="0" y2="160"/%3E%3Cline x1="300" y1="-140" x2="60" y2="160"/%3E%3Cline x1="300" y1="-140" x2="120" y2="160"/%3E%3Cline x1="300" y1="-140" x2="180" y2="160"/%3E%3Cline x1="300" y1="-140" x2="240" y2="160"/%3E%3Cline x1="300" y1="-140" x2="300" y2="160"/%3E%3Cline x1="300" y1="-140" x2="360" y2="160"/%3E%3Cline x1="300" y1="-140" x2="420" y2="160"/%3E%3Cline x1="300" y1="-140" x2="480" y2="160"/%3E%3Cline x1="300" y1="-140" x2="540" y2="160"/%3E%3Cline x1="300" y1="-140" x2="600" y2="160"/%3E%3Cline x1="300" y1="-140" x2="660" y2="160"/%3E%3Cline x1="300" y1="-140" x2="720" y2="160"/%3E%3Cline x1="300" y1="-140" x2="780" y2="160"/%3E%3Cline x1="300" y1="-140" x2="840" y2="160"/%3E%3Cline x1="300" y1="-140" x2="900" y2="160"/%3E%3Cline x1="300" y1="-140" x2="960" y2="160"/%3E%3Cline x1="300" y1="-140" x2="1020" y2="160"/%3E%3Cline x1="300" y1="-140" x2="1080" y2="160"/%3E%3Cline x1="300" y1="-140" x2="1140" y2="160"/%3E%3Cpath d="M0 10.0 Q300 2.0 600 10.0"/%3E%3Cpath d="M0 20.5 Q300 9.5 600 20.5"/%3E%3Cpath d="M0 35.5 Q300 21.5 600 35.5"/%3E%3Cpath d="M0 55.0 Q300 38.0 600 55.0"/%3E%3Cpath d="M0 79.0 Q300 59.0 600 79.0"/%3E%3Cpath d="M0 107.5 Q300 84.5 600 107.5"/%3E%3Cpath d="M0 140.5 Q300 114.5 600 140.5"/%3E%3C/g%3E%3C/svg%3E') center bottom/100% 100% no-repeat;opacity:.16;-webkit-mask-image:linear-gradient(transparent,#000 70%);mask-image:linear-gradient(transparent,#000 70%)}
+.top h1{font-size:26px;letter-spacing:.03em;background:linear-gradient(180deg,#ffffff 10%,#d6dbea 55%,#9aa4c2 95%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.top .count{color:#b9bfd6}
+.top .count b{color:#fff;font-size:16px}
+.top .ring{width:50px;height:50px}
+.top .ring-bg{stroke:rgb(255 255 255 / .16)}
+.top .ring-fg{stroke:#f2c443;filter:drop-shadow(0 0 4px rgb(242 196 67 / .55))}
+.top button.ghost{background:rgb(255 255 255 / .08);border-color:rgb(255 255 255 / .22);color:#fff}
+.top button.ghost:hover{background:rgb(255 255 255 / .14)}
+@media (max-width:700px){.top{margin-inline:-16px;border-radius:0 0 20px 20px;margin-top:0;padding:16px 16px 14px}.top h1{font-size:22px}}
+
+/* type colours: a split edge on every card and a battle-style platform under the sprite */
+.card{position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(var(--c1,var(--line)) 50%,var(--c2,var(--line)) 50%)}
+.card .spr{position:relative}
+.card .spr::before{content:"";position:absolute;left:4px;right:4px;bottom:5px;height:15px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--c1,#888) 60%,transparent),transparent);opacity:.75}
+.card .spr img{position:relative}
+.card.got .spr::before{opacity:1}
+.card:hover{border-color:color-mix(in srgb,var(--c1,var(--line)) 55%,var(--line))}
+.dhead .big{position:relative;overflow:hidden;background:linear-gradient(155deg,color-mix(in srgb,var(--c1,#888) 28%,var(--surface)),color-mix(in srgb,var(--c2,#888) 22%,var(--surface)))}
+.dhead .big::before{content:"";position:absolute;left:14px;right:14px;bottom:12px;height:26px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--c1,#888) 70%,transparent),transparent)}
+.dhead .big img{position:relative}
+.chips.types{margin-top:6px}
+.tychip{background:var(--tc);color:#fff;text-shadow:0 1px 0 rgb(0 0 0 / .3);font-size:11px;padding:2px 9px}
+.tychip.dk{color:#1d2233;text-shadow:none}
+
+/* PC box: each box gets its own wallpaper tint */
+.pcbox{--wh:220;background:linear-gradient(165deg,hsl(var(--wh) 55% 93%),hsl(var(--wh) 40% 85%));border-color:hsl(var(--wh) 35% 75%)}
+.pcbox .slot:not(.got):not(.evo):not(.breed){background:hsl(var(--wh) 40% 96% / .7)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pcbox{background:linear-gradient(165deg,hsl(var(--wh) 35% 22%),hsl(var(--wh) 30% 14%));border-color:hsl(var(--wh) 30% 30%)}
+:root:not([data-theme="light"]) .pcbox .slot:not(.got):not(.evo):not(.breed){background:hsl(var(--wh) 30% 10% / .55)}}
+:root[data-theme="dark"] .pcbox{background:linear-gradient(165deg,hsl(var(--wh) 35% 22%),hsl(var(--wh) 30% 14%));border-color:hsl(var(--wh) 30% 30%)}
+:root[data-theme="dark"] .pcbox .slot:not(.got):not(.evo):not(.breed){background:hsl(var(--wh) 30% 10% / .55)}

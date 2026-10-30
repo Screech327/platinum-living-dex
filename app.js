@@ -20,6 +20,14 @@ const el = (tag, attrs = {}, ...kids) => {
 };
 const img = (id, cls = 'px') => el('img', { class: cls, src: SPRITE(id), alt: '', loading: 'lazy', decoding: 'async', width: 64, height: 64 });
 
+/* ---------------- types (colour accents) ---------------- */
+const TYPE_N = ['Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice', 'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel'];
+const TYPE_C = ['#a8a77a', '#ee8130', '#6390f0', '#f7d02c', '#7ac74c', '#96d9d6', '#c22e28', '#a33ea1', '#e2bf65', '#a98ff3', '#f95587', '#a6b91a', '#b6a136', '#735797', '#6f35fc', '#705746', '#b7b7ce'];
+const TYPE_DARKTXT = new Set([3, 5, 8, 0, 16, 11, 12]); // light swatches get dark text
+const typesOf = id => { const c = (window.CATCH || [])[id - 1]; return c ? [c[4], c[5]].filter(t => t != null && t >= 0) : []; };
+const typeVars = id => { const t = typesOf(id); return t.length ? `--c1:${TYPE_C[t[0]]};--c2:${TYPE_C[t[1] ?? t[0]]}` : null; };
+const typeChip = t => el('span', { class: 'chip tychip' + (TYPE_DARKTXT.has(t) ? ' dk' : ''), style: `--tc:${TYPE_C[t]}`, text: TYPE_N[t] });
+
 /* ---------------- state ---------------- */
 let S = { boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {}, evo: {}, breed: {} };
 const fresh = () => ({ boxed: {}, have: {}, notes: {}, timers: {}, seen: {}, caught: {}, evo: {}, breed: {} });
@@ -165,7 +173,7 @@ function buildGrid() {
     const tick = el('input', { type: 'checkbox', class: 'tick', 'aria-label': 'Caught: ' + d.n });
     tick.addEventListener('click', e => e.stopPropagation());
     tick.addEventListener('change', () => setGot(d.id, tick.checked));
-    const li = el('li', { class: 'card', tabindex: 0, 'data-id': d.id },
+    const li = el('li', { class: 'card', tabindex: 0, 'data-id': d.id, style: typeVars(d.id) },
       el('div', { class: 'spr' }, img(d.id)),
       el('div', { class: 'info' },
         el('div', { class: 'l1' }, el('span', { class: 'num', text: '#' + pad(d.id) }), el('span', { class: 'nm', text: d.n })),
@@ -224,6 +232,7 @@ function slotTap(i) {
 function renderBoxes() {
   const start = (box - 1) * 30 + 1, end = Math.min(box * 30, 493);
   $('#boxName').textContent = 'Box ' + box;
+  $('#pcbox').style.setProperty('--wh', [130, 210, 38, 75, 22, 6, 195, 265, 48, 222, 182, 200, 350, 235, 290, 220, 250][box - 1]); // a different PC wallpaper tint per box
   const filled = DEX.filter(d => d.id >= start && d.id <= end && isGot(d.id)).length;
   const evoHere = DEX.filter(d => d.id >= start && d.id <= end && isEvoMark(d.id)).length;
   $('#boxRange').textContent = `#${pad(start)}–#${pad(end)} · ${filled}/${end - start + 1} filled` + (evoHere ? ` · ${evoHere} to evolve` : '');
@@ -969,8 +978,9 @@ function openDrawer(id) {
   const body = $('#drawerBody');
   body.replaceChildren(...[
     el('button', { type: 'button', class: 'ghost dclose', text: 'Close ✕', onclick: closeDrawer }),
-    el('div', { class: 'dhead' }, el('div', { class: 'big' }, el('img', { class: 'px', src: SPRITE(id), alt: d.n, width: 120, height: 120 })),
+    el('div', { class: 'dhead', style: typeVars(id) }, el('div', { class: 'big' }, el('img', { class: 'px', src: SPRITE(id), alt: d.n, width: 120, height: 120 })),
       el('div', {}, el('span', { class: 'num', text: '#' + pad(id) + ' · ' + regionOf(id) }), el('h3', { text: d.n }),
+        typesOf(id).length ? el('div', { class: 'chips types' }, typesOf(id).map(typeChip)) : null,
         el('div', { class: 'chips', style: 'margin-top:6px' }, chip(d.c), chip(TIERS[d.rank], 'tier' + d.rank), d.cp ? chip('catch ×' + d.cp, 'cp') : null))),
     tabs,
     el('div', { class: 'dpanel', hidden: dTab !== 'info' || null }, ...[
