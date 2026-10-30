@@ -5,7 +5,7 @@
   --accent:#b8860b; --accent-ink:#ffffff; --accent-soft:#f6ecd0; --ink:#1d2233;
   --done:#1f8a4c; --done-soft:#dcf2e4; --warn:#b4541e; --danger:#b3261e;
   --t0:#e3f1e3; --t1:#e1ecf8; --t2:#dbe9fb; --t3:#ece3f8; --t4:#fbe9d5; --t5:#f9dede; --t6:#fde6c8; --t7:#ead9ff;
-  --display:"Chakra Petch",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --pixel:"Pixelify Sans","Courier New",monospace;
+  --display:"Chakra Petch",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --pixel:"Silkscreen","Courier New",monospace;
   --radius:12px; color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -40,7 +40,7 @@ img.px{image-rendering:pixelated}
 h1{font-family:var(--display);font-size:22px;margin:0;letter-spacing:.02em;line-height:1.1}
 h2{font-family:var(--display);font-size:18px;margin:24px 0 4px;letter-spacing:.02em}
 .count{margin:2px 0 0;color:var(--muted);font-variant-numeric:tabular-nums}
-.count b{color:var(--fg);font-family:var(--pixel);font-size:17px}
+.count b{color:var(--fg);font-family:var(--pixel);font-weight:400;font-size:17px}
 .sep{opacity:.5}
 .sub{color:var(--muted);margin:0 0 12px;max-width:68ch}
 .hint{color:var(--muted);font-size:13px;text-align:center}
@@ -195,7 +195,7 @@ textarea{width:100%;border-radius:var(--radius);border:1.5px solid var(--line);b
 /* sinnoh dex */
 .sinhead{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:2px 8px}
-.stat b{font-family:var(--pixel);font-size:26px;font-variant-numeric:tabular-nums}
+.stat b{font-family:var(--pixel);font-weight:400;font-size:26px;font-variant-numeric:tabular-nums}
 .stat span{color:var(--muted);font-size:13px}
 .stat .bar{grid-column:1/-1;display:block;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 .stat .bar i{display:block;height:100%;background:var(--accent);transition:width .4s;width:0}
