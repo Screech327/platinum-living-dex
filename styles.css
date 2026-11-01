@@ -426,3 +426,13 @@ body{background-image:radial-gradient(70rem 36rem at 100% -10%,var(--glow-a),tra
 :root:not([data-theme="light"]) .pcbox .slot:not(.got):not(.evo):not(.breed){background:hsl(var(--wh) 30% 10% / .55)}}
 :root[data-theme="dark"] .pcbox{background:linear-gradient(165deg,hsl(var(--wh) 35% 22%),hsl(var(--wh) 30% 14%));border-color:hsl(var(--wh) 30% 30%)}
 :root[data-theme="dark"] .pcbox .slot:not(.got):not(.evo):not(.breed){background:hsl(var(--wh) 30% 10% / .55)}
+.fam button.evo{border-color:#f2b705;background:#fff4c2}
+.fam button.breed{border-color:#ec4899;background:#ffe3f1}
+.fam button.evo.breed{border-color:#f2b705 #ec4899 #ec4899 #f2b705;background:linear-gradient(135deg,#fff4c2 50%,#ffe3f1 50%)}
+.fam button.evo .fs{color:#8a6400}.fam button.breed .fs{color:#b0186a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fam button.evo{background:#3d3100}:root:not([data-theme="light"]) .fam button.breed{background:#3d1430}
+:root:not([data-theme="light"]) .fam button.evo.breed{background:linear-gradient(135deg,#3d3100 50%,#3d1430 50%)}
+:root:not([data-theme="light"]) .fam button.evo .fs{color:#ffd95a}:root:not([data-theme="light"]) .fam button.breed .fs{color:#ff8cc6}}
+:root[data-theme="dark"] .fam button.evo{background:#3d3100}:root[data-theme="dark"] .fam button.breed{background:#3d1430}
+:root[data-theme="dark"] .fam button.evo.breed{background:linear-gradient(135deg,#3d3100 50%,#3d1430 50%)}
+:root[data-theme="dark"] .fam button.evo .fs{color:#ffd95a}:root[data-theme="dark"] .fam button.breed .fs{color:#ff8cc6}

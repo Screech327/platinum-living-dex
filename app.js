@@ -956,8 +956,8 @@ function openDrawer(id) {
   const tick = el('input', { type: 'checkbox', class: 'tick', checked: got || null, 'aria-label': 'Boxed' });
   tick.addEventListener('change', () => { setGot(id, tick.checked); openDrawer(id); });
   const fam = d.fam.length > 1 ? el('div', { class: 'dsec' }, el('h4', { text: 'Evolution family' }),
-    el('div', { class: 'fam' }, d.fam.map(f => el('button', { type: 'button', class: (isGot(f) ? 'got ' : '') + (f === id ? 'me' : ''), onclick: () => openDrawer(f) },
-      img(f), el('span', {}, BY.get(f).n, el('br'), el('span', { class: 'fs', text: isGot(f) ? '✓ caught' : 'needed' })))))) : null;
+    el('div', { class: 'fam' }, d.fam.map(f => el('button', { type: 'button', class: (isGot(f) ? 'got ' : '') + (isEvoMark(f) ? 'evo ' : '') + (isBreedMark(f) ? 'breed ' : '') + (f === id ? 'me' : ''), onclick: () => openDrawer(f) },
+      img(f), el('span', {}, BY.get(f).n, el('br'), el('span', { class: 'fs', text: isGot(f) ? '✓ caught' : (isEvoMark(f) && isBreedMark(f) ? 'evolve + breed' : isEvoMark(f) ? 'needs evolving' : isBreedMark(f) ? 'needs breeding' : 'needed') })))))) : null;
   const copies = COPY.get(id);
   const note = el('textarea', { class: 'dnote', id: 'note' + id, placeholder: 'Your notes (nickname, which box, where you left it…)' });
   note.value = S.notes[id] || '';
