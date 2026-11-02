@@ -64,6 +64,21 @@ const isEvoMark = id => !isGot(id) && !!(S.evo && S.evo[id]);
 const evoIds = () => Object.keys(S.evo || {}).map(Number).filter(isEvoMark).sort((a, b) => a - b);
 const isBreedMark = id => !isGot(id) && !!(S.breed && S.breed[id]);
 function setBreed(id, on) { S.breed = S.breed || {}; if (on) S.breed[id] = Date.now(); else delete S.breed[id]; save(); toast(on ? `${BY.get(id).n} marked: needs breeding` : `${BY.get(id).n}: breed mark removed`); refresh(); if (drawerId === id) openDrawer(id); }
+// Pokémon you can only fill by breeding: breed-only species, plus evolutions whose line starts from a one-off gift/other-cart Pokémon you breed copies of
+const EVOISH_C = d => d.c === 'Evolve' || d.c === 'Trade evolution';
+const BREED_IDS = DEX.filter(d => {
+  if (d.c === 'Breed only' || d.id === 489) return true;
+  if (!EVOISH_C(d)) return false;
+  let a = d; while (a.pre && EVOISH_C(a)) a = BY.get(a.pre);
+  return a.c === 'Breed only' || /breed copies/i.test(a.need || '');
+}).map(d => d.id);
+function seedBreedMarks() { // one time, synced: pre-mark every breed-only slot you still need
+  S.breed = S.breed || {};
+  if (S.breed._seeded) return;
+  let n = 0; for (const id of BREED_IDS) if (!isGot(id) && !S.breed[id]) { S.breed[id] = Date.now(); n++; }
+  S.breed._seeded = Date.now(); save();
+  if (n) setTimeout(() => toast(`Marked ${n} Pokémon you'll need to breed (pink)`), 600);
+}
 function setEvo(id, on) { if (on) S.evo[id] = Date.now(); else delete S.evo[id]; save(); toast(on ? `${BY.get(id).n} marked: needs evolving` : `${BY.get(id).n}: evolve mark removed`); refresh(); if (drawerId === id) openDrawer(id); }
 const gotCount = () => Object.keys(S.boxed).length;
 
@@ -75,7 +90,8 @@ const EVOISH = d => d.c === 'Evolve' || d.c === 'Trade evolution';
 const alsoVia = (d, re) => d.c !== 'Wild' && (d.locs || []).some(l => re.test(l));
 const ALSO_METHOD = { 'Dongle': /^Dongle \(/, 'Poké Radar': /^Poké Radar:/, 'Swarm': /^Swarm:/, 'Trophy Garden': /^Trophy Garden/, 'Great Marsh (daily)': /^Great Marsh rotation:/, 'Honey tree': /^Honey trees:/ };
 // dongle slots count even for Pokémon that are also normal wild catches, so the per-game dongle list is complete
-const methodMatch = (d, m) => d.c === m || (m === 'Dongle' ? (d.locs || []).some(l => ALSO_METHOD.Dongle.test(l)) : ALSO_METHOD[m] ? alsoVia(d, ALSO_METHOD[m]) : false);
+const EXTRA_METHOD = { 'Evolves by stone': d => /Stone on /.test(d.evo || ''), 'Evolves by held item': d => /holding/i.test(d.evo || ''), 'Needs breeding': d => BREED_IDS.includes(d.id) };
+const methodMatch = (d, m) => EXTRA_METHOD[m] ? EXTRA_METHOD[m](d) : d.c === m || (m === 'Dongle' ? (d.locs || []).some(l => ALSO_METHOD.Dongle.test(l)) : ALSO_METHOD[m] ? alsoVia(d, ALSO_METHOD[m]) : false);
 // which other carts a source string names (combined names like "HG/SS" or "R/S/E" count for each game)
 function srcGames(src) {
   const out = new Set(), add = (...k) => k.forEach(x => out.add(x));
@@ -211,6 +227,7 @@ function renderGrid() {
 }
 function initFilters() {
   [...new Set(DEX.map(d => d.c))].forEach(m => $('#fMethod').append(new Option(m, m)));
+  ['Evolves by stone', 'Evolves by held item', 'Needs breeding'].forEach(m => $('#fMethod').append(new Option(m, m)));
   TIERS.forEach((t, i) => $('#fTier').append(new Option(t, i)));
   TOD_OPTS.filter(([v]) => [...TOD.values()].includes(v)).forEach(([v, t]) => $('#fTod').append(new Option(t, v)));
   GAMES.forEach((g, i) => $('#fGame').append(new Option(g.name, i)));
@@ -1030,7 +1047,7 @@ function refresh() { header(); RENDER[view](); }
 
 function init() {
   window.__pld = { mapRef, MAP, subHas, openDrawer };
-  load(); buildSin(); buildGrid(); buildMap(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore(); initStream(); initSync();
+  load(); seedBreedMarks(); buildSin(); buildGrid(); buildMap(); initFilters(); initBoxes(); initPlan(); initDupes(); initMore(); initStream(); initSync();
   $$('[data-view]').forEach(b => b.addEventListener('click', () => { setView(b.dataset.view); scrollTo({ top: 0 }); }));
   $('#scrim').addEventListener('click', closeDrawer);
   addEventListener('keydown', e => { if (e.key === 'Escape' && drawerId) closeDrawer(); });
