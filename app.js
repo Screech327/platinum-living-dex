@@ -735,7 +735,9 @@ function initSync() {
 const MAP = new Map((window.MAPDATA || []).map(([loc, subs]) => [loc, subs]));
 // time-of-day mask per species from Platinum's encounter tables: 1 morning (4am–10am), 2 day (10am–8pm), 4 night (8pm–4am)
 const TOD = new Map();
-for (const [, subs] of window.MAPDATA || []) for (const [, secs] of subs) for (const [sec, rows] of secs) for (const r of rows) {
+// only the everyday encounter tables count: daily rotations, swarms, Poké Radar, dongle and honey-tree spawns don't make a Pokémon "any time"
+const TOD_SKIP = /^(Poké Radar|Dongle|Swarm|Honey tree|Mr\. Backlot|Daily Pokémon)/;
+for (const [, subs] of window.MAPDATA || []) for (const [, secs] of subs) for (const [sec, rows] of secs) if (!TOD_SKIP.test(sec)) for (const r of rows) {
   const m = /^(Gift|Egg gift|One-time encounter|In-game trade)$/.test(sec) || !(r[1] || r[2] || r[3]) ? 7 : (r[1] ? 1 : 0) | (r[2] ? 2 : 0) | (r[3] ? 4 : 0); // rate-less rows (Feebas tiles) aren't time-limited
   TOD.set(r[0], (TOD.get(r[0]) || 0) | m);
 }
